@@ -1,0 +1,383 @@
+# 🎙️ AI Voice TTS - 智能语音合成系统
+
+一个基于 FastAPI、Celery 和 Microsoft Edge TTS 的现代化智能语音合成系统，支持长文本自动分块、多语音模型、异步处理和美观的 Web 界面。
+
+## ✨ 主要特性
+
+### 🎵 语音合成功能
+- **多语言支持**: 中文、英文、方言等多种语音模型
+- **长文本处理**: 自动文本分块，支持超长文本转换
+- **高质量音频**: 基于 Microsoft Edge TTS，音质清晰自然
+- **参数自定义**: 语速、音调、语音模型灵活调节
+- **异步处理**: 基于 Celery 的后台任务队列，支持高并发
+
+### 🎨 现代化界面
+- **响应式设计**: 完美适配桌面、平板、手机等设备
+- **美观表格**: 现代化表格设计，文字对齐整齐，按钮不跨行
+- **实时状态**: 任务状态实时更新，支持进度跟踪
+- **音频预览**: 在线音频播放和下载功能
+- **快速预设**: 6种预设配置（故事朗读、新闻播报、教学讲解等）
+- **文本操作**: 全屏阅读模式和一键复制文本功能
+- **优雅通知**: 现代化的通知系统，无干扰式反馈
+
+### 🏗️ 技术架构
+- **后端**: FastAPI + SQLAlchemy + Alembic
+- **任务队列**: Celery + Redis
+- **数据库**: PostgreSQL (端口 15432)
+- **缓存**: Redis (端口 16379)
+- **前端**: 纯 HTML/CSS/JavaScript，Ant Design CSS框架
+- **Web服务器**: Nginx
+- **语音引擎**: Microsoft Edge TTS (edge-tts)
+- **容器化**: Docker + Docker Compose
+
+## 🚀 快速开始
+
+### 环境要求
+- Python 3.8+
+- PostgreSQL 12+
+- Redis 6+
+- Node.js 14+ (可选，用于前端开发)
+
+### 安装步骤
+
+1. **克隆项目**
+```bash
+git clone https://github.com/LuckVd/AIVoice.git
+cd AIVoice
+```
+
+2. **使用 Docker Compose（推荐）**
+```bash
+# 启动所有服务
+docker-compose up -d
+
+# 查看日志
+docker-compose logs -f
+```
+
+3. **手动安装**
+
+```bash
+# 安装后端依赖
+cd backend
+pip install -r requirements.txt
+
+# 配置数据库
+export DATABASE_URL="postgresql://tts_user:tts_password@localhost:15432/tts_db"
+export REDIS_URL="redis://localhost:16379"
+
+# 运行数据库迁移
+export PYTHONPATH=/opt/projects/AIVoice/backend:* && alembic upgrade head
+
+# 启动后端服务
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+# 启动 Celery Worker（新终端）
+celery -A app.core.celery_app worker --loglevel=info
+```
+
+### 访问应用
+- **Web 界面**: http://localhost:80
+- **API 文档**: http://localhost:8000/docs
+- **健康检查**: http://localhost:8000/health
+
+## 📖 使用指南
+
+### Web 界面操作
+
+1. **创建语音任务**
+   - 点击"创建任务"按钮
+   - 输入要转换的文本内容
+   - 选择语音模型（支持中文、英文、方言等）
+   - 调节语速和音调参数
+   - 可使用快速预设配置
+   - 点击"开始转换"
+
+2. **任务管理**
+   - 查看所有任务的列表
+   - 实时更新任务状态（等待中、处理中、已完成、失败）
+   - 在线播放生成的音频
+   - 下载音频文件到本地
+   - 查看任务详细信息
+
+3. **快速预设**
+   - 📚 **故事朗读**: 温和女声，适中语速
+   - 📰 **新闻播报**: 清晰女声，稍快语速
+   - 🎓 **教学讲解**: 磁性男声，平稳语速
+   - 🌙 **温柔睡前**: 甜美女声，缓慢语速
+   - ⚡ **活力宣传**: 活泼女声，明快语速
+   - 🎨 **自定义**: 根据需要自行调整
+
+### API 使用
+
+```bash
+# 创建 TTS 任务
+curl -X POST "http://localhost:8000/api/tts/" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "你好，欢迎使用 AI Voice TTS 系统！",
+    "voice": "zh-CN-XiaoxiaoNeural",
+    "rate": "-15%",
+    "pitch": "-20Hz"
+  }'
+
+# 获取任务列表
+curl "http://localhost:8000/api/tts/"
+
+# 获取任务详情
+curl "http://localhost:8000/api/tts/{task_id}"
+
+# 健康检查
+curl "http://localhost:8000/health"
+```
+
+## 🏛️ 项目结构
+
+```
+AIVoice/
+├── backend/                    # 后端代码
+│   ├── app/
+│   │   ├── api/               # API 路由
+│   │   │   └── tts.py         # TTS API 接口
+│   │   ├── core/              # 核心模块
+│   │   │   ├── config.py      # 配置文件
+│   │   │   ├── database.py    # 数据库连接
+│   │   │   └── celery_app.py  # Celery 配置
+│   │   ├── models/            # 数据模型
+│   │   │   └── tts.py         # TTS 任务模型
+│   │   ├── services/          # 业务逻辑
+│   │   │   └── tts_service.py # TTS 服务
+│   │   ├── schemas/           # Pydantic 模式
+│   │   │   └── tts.py         # TTS 数据模式
+│   │   └── tasks/             # Celery 任务
+│   │       └── tts_tasks.py   # TTS 异步任务
+│   └── alembic/               # 数据库迁移
+├── storage/                   # 存储目录
+│   ├── audio/                 # 生成的音频文件
+│   ├── uploads/               # 上传文件
+│   ├── temp/                  # 临时文件
+│   └── index.html             # Web 界面
+├── docker/                    # Docker 配置
+│   ├── Dockerfile.backend
+│   ├── Dockerfile.celery
+│   └── Dockerfile.frontend
+├── docker-compose.yml         # Docker Compose 配置
+├── requirements.txt           # Python 依赖
+└── README.md                  # 项目文档
+```
+
+## 🔧 配置说明
+
+### 环境变量
+
+| 变量名 | 描述 | 默认值 |
+|--------|------|--------|
+| `DATABASE_URL` | PostgreSQL 数据库连接 | `postgresql://tts_user:tts_password@localhost:15432/tts_db` |
+| `REDIS_URL` | Redis 连接地址 | `redis://localhost:16379` |
+| `STORAGE_PATH` | 文件存储路径 | `/opt/projects/AIVoice/storage` |
+| `MAX_FILE_SIZE` | 最大文件大小 | `10485760` (10MB) |
+| `MAX_CHARS_PER_CHUNK` | 文本分块大小 | `500` |
+| `DEFAULT_VOICE` | 默认语音模型 | `zh-CN-XiaoxiaoNeural` |
+| `DEFAULT_RATE` | 默认语速 | `-15%` |
+| `DEFAULT_PITCH` | 默认音调 | `-20Hz` |
+
+
+
+## 🐳 Docker 部署
+
+### 使用 Docker Compose
+
+```bash
+# 启动所有服务
+docker-compose up -d
+
+# 查看服务状态
+docker-compose ps
+
+# 查看日志
+docker-compose logs -f backend
+docker-compose logs -f celery
+
+# 停止服务
+docker-compose down
+
+# 重新构建并启动
+docker-compose up --build -d
+```
+
+### 单独部署
+
+```bash
+# 构建后端镜像
+docker build -f docker/Dockerfile.backend -t aivoice-backend .
+
+# 构建 Celery 镜像
+docker build -f docker/Dockerfile.celery -t aivoice-celery .
+
+# 运行容器
+docker run -d --name aivoice-backend -p 8000:8000 aivoice-backend
+docker run -d --name aivoice-celery aivoice-celery
+```
+
+## 🔍 监控和日志
+
+### 健康检查
+```bash
+curl http://localhost:8000/health
+```
+
+### Celery 监控
+```bash
+# 查看 Celery 状态
+celery -A app.core.celery_app inspect active
+
+# 查看队列信息
+celery -A app.core.celery_app inspect stats
+```
+
+### 日志查看
+```bash
+# 查看应用日志
+tail -f logs/app.log
+
+# 查看 Celery 日志
+tail -f logs/celery.log
+
+# Docker 环境
+docker-compose logs -f backend
+docker-compose logs -f celery
+```
+
+## 🛠️ 开发指南
+
+### 本地开发环境设置
+
+1. **安装依赖**
+```bash
+pip install -r requirements.txt
+pip install pytest pytest-asyncio black flake8
+```
+
+2. **运行测试**
+```bash
+pytest tests/
+```
+
+3. **代码格式化**
+```bash
+black app/
+flake8 app/
+```
+
+### 数据库迁移
+
+```bash
+# 创建迁移文件
+alembic revision --autogenerate -m "描述"
+
+# 应用迁移
+alembic upgrade head
+
+# 回滚迁移
+alembic downgrade -1
+```
+
+### API 开发
+
+所有 API 端点都在 `app/api/` 目录下：
+
+- `GET /api/tts/` - 获取任务列表
+- `POST /api/tts/` - 创建新任务
+- `GET /api/tts/{task_id}` - 获取任务详情
+- `GET /api/tts/{task_id}/status` - 获取任务状态
+
+## 🔒 安全考虑
+
+1. **文件上传安全**
+   - 文件类型验证
+   - 文件大小限制
+   - 扫描恶意内容
+
+2. **API 安全**
+   - 请求频率限制
+   - 输入参数验证
+   - 错误信息脱敏
+
+3. **数据保护**
+   - 敏感信息加密存储
+   - 定期清理临时文件
+   - 访问日志记录
+
+## 📈 性能优化
+
+1. **异步处理**
+   - 使用 Celery 处理耗时的 TTS 任务
+   - 支持任务并发处理
+   - 任务结果缓存
+
+2. **数据库优化**
+   - 合理的索引设计
+   - 查询优化
+   - 连接池管理
+
+3. **文件管理**
+   - 音频文件压缩
+   - 静态文件 CDN
+   - 定期清理过期文件
+
+## 🐛 故障排除
+
+### 常见问题
+
+1. **TTS 任务失败**
+   - 检查网络连接
+   - 验证语音模型名称
+   - 查看错误日志
+
+2. **音频无法播放**
+   - 检查文件路径
+   - 验证音频格式
+   - 确认文件权限
+
+3. **界面显示异常**
+   - 清除浏览器缓存
+   - 检查控制台错误
+   - 验证静态文件服务
+
+### 日志分析
+
+```bash
+# 查看错误日志
+grep "ERROR" logs/app.log
+
+# 查看 TTS 相关日志
+grep "TTS" logs/app.log
+
+# 查看 Celery 任务日志
+grep "task" logs/celery.log
+```
+
+
+
+## 📄 许可证
+
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
+
+## 👥 作者
+
+- **LuckVd** - 项目维护者
+
+## 🙏 致谢
+- [Edge TTS](https://github.com/rany2/edge-tts) - Microsoft Edge TTS Python 实现
+
+
+## 📞 支持
+
+如果您遇到任何问题或有任何建议，请：
+
+1. 查看 [Issues](https://github.com/LuckVd/AIVoice/issues)
+2. 创建新的 Issue
+
+---
+
+**🎙️ AI Voice TTS - 让文字拥有声音的力量！**
