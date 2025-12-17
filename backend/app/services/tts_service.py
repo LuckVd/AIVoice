@@ -63,6 +63,38 @@ class TTSService:
     async def generate_audio_chunk(self, text: str, voice: str, rate: str, pitch: str, output_path: Path) -> None:
         """Generate audio for a single text chunk"""
         try:
+            # Fix rate parameter: edge-tts requires rate to start with + or -
+            # If rate is "0%", use empty string (default rate)
+            if rate == "0%":
+                rate = ""
+            elif rate and not rate.startswith(('+', '-')):
+                # If rate doesn't start with + or -, add appropriate prefix
+                try:
+                    num_value = int(rate.rstrip('%'))
+                    if num_value > 0:
+                        rate = f"+{rate}"
+                    elif num_value < 0:
+                        rate = f"{rate}"  # already has -
+                    else:
+                        rate = ""  # zero means default rate
+                except ValueError:
+                    rate = ""  # fallback to default if invalid format
+
+            # Same for pitch if needed
+            if pitch == "0Hz":
+                pitch = ""
+            elif pitch and not pitch.startswith(('+', '-')):
+                try:
+                    num_value = int(pitch.rstrip('Hz'))
+                    if num_value > 0:
+                        pitch = f"+{pitch}"
+                    elif num_value < 0:
+                        pitch = f"{pitch}"  # already has -
+                    else:
+                        pitch = ""  # zero means default pitch
+                except ValueError:
+                    pitch = ""  # fallback to default if invalid format
+
             communicate = edge_tts.Communicate(
                 text=text,
                 voice=voice,

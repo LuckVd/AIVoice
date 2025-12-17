@@ -979,7 +979,7 @@
                                 <option value="-50%">超慢 (-50%)</option>
                                 <option value="-30%">很慢 (-30%)</option>
                                 <option value="-15%">慢速 (-15%)</option>
-                                <option value="0%" selected>正常 (0%)</option>
+                                <option value="" selected>正常 (默认)</option>
                                 <option value="+10%">稍快 (+10%)</option>
                                 <option value="+15%">快速 (+15%)</option>
                                 <option value="+25%">较快 (+25%)</option>
@@ -996,7 +996,7 @@
                                 <option value="-50Hz">低 (-50Hz)</option>
                                 <option value="-35Hz">偏低 (-35Hz)</option>
                                 <option value="-20Hz" selected>略低 (-20Hz)</option>
-                                <option value="+0Hz">正常 (0Hz)</option>
+                                <option value="">正常 (默认)</option>
                                 <option value="+20Hz">略高 (+20Hz)</option>
                                 <option value="+35Hz">偏高 (+35Hz)</option>
                                 <option value="+50Hz">高 (+50Hz)</option>
@@ -1305,7 +1305,7 @@
                 },
                 'custom': {
                     voice: 'zh-CN-XiaoxiaoNeural',
-                    rate: '0%',
+                    rate: '-15%',
                     pitch: '-20Hz',
                     description: '默认设置，可根据需要自行调整'
                 }
@@ -1582,7 +1582,7 @@
                     document.getElementById('textInput').value = '';
                     document.getElementById('customRate').value = '';
                     document.getElementById('customPitch').value = '';
-                    document.getElementById('rateSelect').value = '0%';
+                    document.getElementById('rateSelect').value = '-15%';
                     document.getElementById('pitchSelect').value = '-20Hz';
 
                     // 移除所有预设按钮的激活状态
