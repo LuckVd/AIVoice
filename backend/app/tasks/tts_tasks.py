@@ -4,15 +4,28 @@ from ..core.database import SessionLocal
 from ..core.celery_app import celery_app
 from ..models.tts import TTSRequest, TaskStatus
 from ..services.tts_service import TTSService
+from ..services.ssml_generator import generate_ssml, PRESET_CONFIGS
 import asyncio
 import traceback
 from datetime import datetime
 import os
+import re
 
 
 @celery_app.task(bind=True)
 def process_tts_task(self, task_id: int):
-    """Background task to process TTS request"""
+    """Background task to process TTS request (legacy mode)"""
+    return _process_tts_task_internal(self, task_id, use_ssml=False, ssml_preset=None, ssml_overrides=None)
+
+
+@celery_app.task(bind=True)
+def process_tts_task_ssml(self, task_id: int, ssml_preset: str = None, ssml_overrides: dict = None):
+    """Background task to process TTS request with SSML"""
+    return _process_tts_task_internal(self, task_id, use_ssml=True, ssml_preset=ssml_preset, ssml_overrides=ssml_overrides)
+
+
+def _process_tts_task_internal(self, task_id: int, use_ssml: bool = False, ssml_preset: str = None, ssml_overrides: dict = None):
+    """Internal TTS processing task"""
     db = SessionLocal()
     tts_service = TTSService()
 
@@ -22,7 +35,7 @@ def process_tts_task(self, task_id: int):
         if not tts_request:
             raise ValueError(f"TTS request {task_id} not found")
 
-        # Update status to processing
+        # Update status to processing (temporarily disable SSML fields)
         tts_request.status = TaskStatus.PROCESSING
         tts_request.started_at = datetime.utcnow()
         db.commit()
@@ -38,9 +51,36 @@ def process_tts_task(self, task_id: int):
         asyncio.set_event_loop(loop)
 
         try:
+            # Prepare SSML configuration if needed
+            ssml_config = None
+            if use_ssml:
+                if ssml_overrides:
+                    ssml_config = tts_service.create_ssml_config_from_preset(
+                        ssml_preset or tts_service.default_ssml_config,
+                        **ssml_overrides
+                    )
+                else:
+                    ssml_config = ssml_preset or tts_service.default_ssml_config
+
+                # SSML generation will be done during chunk processing
+                # (temporarily disabled storing in database)
+                pass
+
             # Clean and split text to get chunk count
             cleaned_text = tts_service.clean_text(tts_request.text)
-            chunks = tts_service.split_text(cleaned_text)
+
+            # Adjust chunk size based on SSML configuration
+            if use_ssml and ssml_config:
+                if isinstance(ssml_config, str) and ssml_config in PRESET_CONFIGS:
+                    chunk_size = PRESET_CONFIGS[ssml_config].structure.max_sentence_len * 3
+                elif hasattr(ssml_config, 'structure'):
+                    chunk_size = ssml_config.structure.max_sentence_len * 3
+                else:
+                    chunk_size = 500
+            else:
+                chunk_size = 500
+
+            chunks = tts_service.split_text(cleaned_text, chunk_size)
             tts_request.total_chunks = len(chunks)
             db.commit()
 
@@ -51,18 +91,46 @@ def process_tts_task(self, task_id: int):
             )
 
             # Generate audio
+            # When using SSML, pass empty rate/pitch to avoid conflicts with SSML parameters
+            rate = "" if use_ssml else tts_request.rate
+            pitch = "" if use_ssml else tts_request.pitch
+
             audio_path = loop.run_until_complete(tts_service.generate_tts_async(
                 tts_request.task_id,
                 tts_request.text,
                 tts_request.voice,
-                tts_request.rate,
-                tts_request.pitch
+                rate,
+                pitch,
+                use_ssml=use_ssml,
+                ssml_config=ssml_config
             ))
 
             # Get file size and duration (approximate)
             file_size = os.path.getsize(audio_path) if os.path.exists(audio_path) else 0
-            # Approximate duration: 150 words per minute, average Chinese character is a word
-            estimated_duration = len(tts_request.text) * 60 / 150
+            # Adjust duration estimate based on SSML configuration
+            if use_ssml and ssml_config:
+                if isinstance(ssml_config, str) and ssml_config in PRESET_CONFIGS:
+                    base_rate = PRESET_CONFIGS[ssml_config].pace.base_rate
+                elif hasattr(ssml_config, 'pace'):
+                    base_rate = ssml_config.pace.base_rate
+                else:
+                    base_rate = "-15%"
+
+                # Estimate duration based on rate
+                rate_match = re.match(r'([+-]?)(\d+)%', base_rate)
+                if rate_match:
+                    rate_value = int(rate_match.group(2))
+                    if rate_match.group(1) == '-':
+                        # Slower speech, longer duration
+                        duration_multiplier = 1 + (rate_value / 100)
+                    else:
+                        # Faster speech, shorter duration
+                        duration_multiplier = 1 - (rate_value / 200)  # Less impact for faster speech
+                    estimated_duration = len(tts_request.text) * 60 / 150 * duration_multiplier
+                else:
+                    estimated_duration = len(tts_request.text) * 60 / 150
+            else:
+                estimated_duration = len(tts_request.text) * 60 / 150
 
             # Update request with success
             tts_request.status = TaskStatus.COMPLETED
@@ -79,7 +147,9 @@ def process_tts_task(self, task_id: int):
                 meta={
                     'progress': 1.0,
                     'message': 'TTS processing completed successfully',
-                    'result_url': tts_request.audio_url
+                    'result_url': tts_request.audio_url,
+                    'ssml_used': use_ssml,
+                    'ssml_preset': ssml_preset if use_ssml else None
                 }
             )
 

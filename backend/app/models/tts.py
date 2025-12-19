@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Enum, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, Enum, Boolean, JSON
 from sqlalchemy.sql import func
 from ..core.database import Base
 import enum
@@ -31,3 +31,9 @@ class TTSRequest(Base):
     completed_at = Column(DateTime(timezone=True), nullable=True)
     duration_seconds = Column(Integer, nullable=True)
     file_size_bytes = Column(Integer, nullable=True)
+
+    # SSML 相关字段
+    use_ssml = Column(Boolean, default=False, nullable=False)
+    ssml_preset = Column(String(50), nullable=True)
+    ssml_config = Column(JSON, nullable=True)  # 存储自定义 SSML 配置
+    ssml_generated = Column(Text, nullable=True)  # 存储生成的 SSML
