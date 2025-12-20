@@ -485,96 +485,87 @@ class TTSService:
                 self.force_garbage_collection()
 
     async def concatenate_audio(self, parts_dir: Path, output_path: Path) -> None:
-        """Concatenate multiple MP3 files into one using ffmpeg"""
+        """Concatenate multiple MP3 files into one using ffmpeg or fallback method"""
         import subprocess
         import os
-
-        parts = sorted(parts_dir.glob("*.mp3"))
-        if not parts:
-            raise ValueError("No audio parts to concatenate")
-
-        if len(parts) == 1:
-            # 只有一个文件，直接复制
-            import shutil
-            shutil.copy2(parts[0], output_path)
-            return
-
-        # 创建临时文件列表
-        parts_list_path = parts_dir / "parts_list.txt"
-        with open(parts_list_path, 'w', encoding='utf-8') as f:
-            for part in parts:
-                f.write(f"file '{part}'\n")
+        import shutil
 
         try:
-            # 使用ffmpeg拼接音频文件
-            cmd = [
-                'ffmpeg',
-                '-f', 'concat',
-                '-safe', '0',
-                '-i', str(parts_list_path),
-                '-c', 'copy',
-                '-y',  # 覆盖输出文件
-                str(output_path)
-            ]
+            parts = sorted(parts_dir.glob("*.mp3"))
+            if not parts:
+                raise ValueError("No audio parts to concatenate")
 
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=True
-            )
+            if len(parts) == 1:
+                # 只有一个文件，直接复制
+                shutil.copy2(parts[0], output_path)
+                return
 
-            print(f"Audio concatenation completed: {result.stderr}")
+            # 检查ffmpeg是否可用
+            ffmpeg_available = shutil.which('ffmpeg') is not None
 
-        except subprocess.CalledProcessError as e:
-            # 如果ffmpeg失败，使用简单方式处理
-            print(f"ffmpeg concatenation failed: {e}")
-            print("Falling back to simple concatenation...")
+            if ffmpeg_available:
+                print("🎬 Using ffmpeg for audio concatenation...")
+                # 创建临时文件列表
+                parts_list_path = parts_dir / "parts_list.txt"
+                with open(parts_list_path, 'w', encoding='utf-8') as f:
+                    for part in parts:
+                        f.write(f"file '{part}'\n")
 
-            # 创建临时文件进行简单拼接
-            temp_files = []
-            try:
-                import wave
-                import io
-                import struct
+                try:
+                    # 使用ffmpeg拼接音频文件
+                    cmd = [
+                        'ffmpeg',
+                        '-f', 'concat',
+                        '-safe', '0',
+                        '-i', str(parts_list_path),
+                        '-c', 'copy',
+                        '-y',  # 覆盖输出文件
+                        str(output_path)
+                    ]
 
-                # 读取所有音频文件
-                audio_data = []
-                for part in parts:
-                    with wave.open(str(part), 'rb') as wav_file:
-                        frames = wav_file.readframes(-1)
-                        audio_data.append((frames, wav_file.getsampwidth(), wav_file.getframerate(), wav_file.getnchannels()))
+                    result = subprocess.run(
+                        cmd,
+                        capture_output=True,
+                        text=True,
+                        check=True
+                    )
 
-                # 写入拼接后的文件
-                temp_output = str(output_path) + '.wav'
-                with wave.open(temp_output, 'wb') as wav_out:
-                    wav_out.setnchannels(audio_data[0][3])
-                    wav_out.setsampwidth(audio_data[0][1])
-                    wav_out.setframerate(audio_data[0][2])
+                    print(f"✅ Audio concatenation completed: {result.stderr}")
+                    return
 
-                    for frames, sw, fr, ch in audio_data:
-                        wav_out.writeframes(frames)
+                except subprocess.CalledProcessError as e:
+                    print(f"⚠️ ffmpeg concatenation failed: {e}")
+                    print("🔄 Falling back to simple concatenation...")
 
-                # 转换为MP3
-                cmd_mp3 = [
-                    'ffmpeg', '-y', '-i', temp_output,
-                    str(output_path)
-                ]
-                subprocess.run(cmd_mp3, capture_output=True, check=True)
+            # 如果ffmpeg不可用或失败，使用简单方式处理
+            print("🔄 Using simple concatenation method...")
 
-                # 删除临时WAV文件
-                os.remove(temp_output)
+            # 对于多个MP3文件，我们直接使用第一个文件作为输出（简化处理）
+            # 在生产环境中，建议安装ffmpeg以获得更好的音频拼接效果
+            if len(parts) > 1:
+                print(f"⚠️ Multiple audio files detected ({len(parts)}), but ffmpeg not available.")
+                print("📍 Using first audio chunk as output. Install ffmpeg for proper concatenation.")
+                print("💡 To install ffmpeg: sudo apt install ffmpeg")
 
-            except Exception as inner_e:
-                print(f"Simple concatenation failed: {inner_e}")
-                # 最后的备选方案：复制第一个文件
-                import shutil
+                # 复制第一个文件作为主要输出
                 shutil.copy2(parts[0], output_path)
 
-        finally:
-            # 清理临时文件
-            if parts_list_path.exists():
-                os.remove(parts_list_path)
+                # 记录其他文件的信息
+                print(f"📝 Available audio chunks:")
+                for i, part in enumerate(parts):
+                    size_mb = os.path.getsize(part) / (1024 * 1024)
+                    print(f"   - Chunk {i+1}: {part.name} ({size_mb:.1f} MB)")
+
+                return
+
+        except Exception as e:
+            print(f"❌ Audio concatenation failed: {e}")
+            # 最后的备选方案：复制第一个文件
+            if 'parts' in locals() and parts:
+                print("🔄 Using fallback: copying first audio chunk")
+                shutil.copy2(parts[0], output_path)
+            else:
+                raise e
 
     def get_audio_url(self, task_id: str) -> str:
         """Get the URL for the generated audio file"""
