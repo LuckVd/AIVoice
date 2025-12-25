@@ -17,6 +17,7 @@ dependencies = [
     "aiofiles>=23.2.1",
     "python-jose[cryptography]>=3.3.0",
     "passlib[bcrypt]>=1.7.4",
+    "psutil>=5.9.6",
     "edge-tts>=6.1.9",
     "ffmpeg-python>=0.2.0",
     "httpx>=0.25.2",

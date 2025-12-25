@@ -1018,7 +1018,7 @@
                                     🗑️ 删除
                                 </button>
                             </div>
-                            <audio v-if="task.audio_url && currentAudio === task.audio_url" :src="task.audio_url" class="audio-player" controls></audio>
+                            <audio v-if="task.audio_url && currentAudio === getFullAudioUrl(task.audio_url)" :src="getFullAudioUrl(task.audio_url)" class="audio-player" controls></audio>
                         </div>
                     </div>
                 </div>
@@ -1120,7 +1120,7 @@
                 <div v-if="currentTaskDetail.audio_url" class="detail-section">
                     <h4>🎵 音频文件</h4>
                     <div class="audio-section">
-                        <audio :src="currentTaskDetail.audio_url" controls class="detail-audio"></audio>
+                        <audio :src="getFullAudioUrl(currentTaskDetail.audio_url)" controls class="detail-audio"></audio>
                         <div class="detail-item">
                             <label>文件大小:</label>
                             <span>{{ formatFileSize(currentTaskDetail.file_size_bytes) }}</span>
@@ -1184,6 +1184,14 @@
             beforeUnmount() {
                 if (this.refreshInterval) {
                     clearInterval(this.refreshInterval);
+                }
+            },
+            computed: {
+                // 构建完整的音频URL
+                getFullAudioUrl() {
+                    return (audioUrl) => {
+                        return audioUrl && (audioUrl.startsWith('http') ? audioUrl : `http://localhost:8000${audioUrl}`);
+                    };
                 }
             },
             methods: {
@@ -1452,16 +1460,22 @@
                 },
 
                 playAudio(audioUrl) {
-                    if (this.currentAudio === audioUrl) {
+                    // 构建完整的音频URL
+                    const fullAudioUrl = audioUrl.startsWith('http') ? audioUrl : `http://localhost:8000${audioUrl}`;
+
+                    if (this.currentAudio === fullAudioUrl) {
                         this.currentAudio = null;
                     } else {
-                        this.currentAudio = audioUrl;
+                        this.currentAudio = fullAudioUrl;
                     }
                 },
 
                 downloadAudio(audioUrl, taskId) {
+                    // 构建完整的音频URL
+                    const fullAudioUrl = audioUrl.startsWith('http') ? audioUrl : `http://localhost:8000${audioUrl}`;
+
                     const link = document.createElement('a');
-                    link.href = audioUrl;
+                    link.href = fullAudioUrl;
                     link.download = `tts_${taskId}.mp3`;
                     document.body.appendChild(link);
                     link.click();
