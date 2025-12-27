@@ -7,6 +7,7 @@ import os
 from .core.config import settings
 from .core.database import engine, Base
 from .api.tts import router as tts_router
+from .api.saved_audios import router as saved_audios_router
 from .core.celery_app import celery_app
 
 
@@ -19,6 +20,7 @@ async def lifespan(app: FastAPI):
     os.makedirs(f"{settings.storage_path}/uploads", exist_ok=True)
     os.makedirs(f"{settings.storage_path}/audio", exist_ok=True)
     os.makedirs(f"{settings.storage_path}/temp", exist_ok=True)
+    os.makedirs(f"{settings.storage_path}/saved", exist_ok=True)
 
     yield
 
@@ -44,6 +46,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(tts_router, prefix="/api")
+app.include_router(saved_audios_router, prefix="/api")
 
 # Serve static files
 if os.path.exists(settings.storage_path):

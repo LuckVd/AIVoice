@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/antd@5.12.8/dist/antd.min.css">
     <script src="https://cdn.jsdelivr.net/npm/vue@3.3.4/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
     <style>
         :root {
             --primary-color: #1890ff;
@@ -32,59 +33,268 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f5f5f5;
             min-height: 100vh;
             color: var(--text-color);
         }
 
         .app-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         .app-header {
-            background: var(--white);
-            border-radius: var(--border-radius);
-            padding: 24px;
-            margin-bottom: 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 16px 24px;
             box-shadow: var(--box-shadow);
-            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .app-title {
-            font-size: 32px;
+            font-size: 24px;
             font-weight: 700;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 8px;
+            color: var(--white);
+            margin: 0;
         }
 
         .app-subtitle {
-            color: var(--text-color-secondary);
-            font-size: 16px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
             font-weight: 400;
+            margin-top: 4px;
         }
 
         .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
+            display: flex;
+            flex: 1;
+            overflow: hidden;
         }
 
-        @media (max-width: 1024px) {
-            .main-content {
+        /* 侧边栏样式 */
+        .sidebar {
+            width: 240px;
+            background: var(--white);
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            transition: width 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            width: 70px;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .collapse-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+            font-size: 16px;
+            color: var(--text-color-secondary);
+        }
+
+        .collapse-btn:hover {
+            background-color: #f5f5f5;
+            color: var(--primary-color);
+        }
+
+        .menu-list {
+            list-style: none;
+            padding: 16px 0;
+            margin: 0;
+        }
+
+        .menu-item {
+            padding: 12px 24px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-color);
+            font-size: 15px;
+            font-weight: 500;
+            border-left: 3px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .sidebar.collapsed .menu-item {
+            padding: 12px;
+            justify-content: center;
+        }
+
+        .menu-item:hover {
+            background: #f5f5f5;
+        }
+
+        .menu-item.active {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            color: var(--primary-color);
+            border-left-color: var(--primary-color);
+        }
+
+        .menu-icon {
+            font-size: 18px;
+            min-width: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .menu-text {
+            flex: 1;
+            opacity: 1;
+            transition: opacity 0.2s ease;
+        }
+
+        .sidebar.collapsed .menu-text {
+            opacity: 0;
+            width: 0;
+        }
+
+        /* 内容区域样式 */
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            background: #f5f5f5;
+        }
+
+        .content-panel {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            box-shadow: var(--box-shadow);
+            min-height: 100%;
+        }
+
+        .task-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+
+        .task-list-header {
+            display: grid;
+            grid-template-columns: 40px 100px 80px 1fr 300px;
+            gap: 12px;
+            padding: 10px 16px;
+            background: #fafafa;
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--text-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        @media (max-width: 768px) {
+            .task-list-header {
+                display: none;
+            }
+        }
+
+        .saved-audio-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .saved-audio-list {
                 grid-template-columns: 1fr;
             }
         }
 
-        .panel {
+        .saved-audio-card {
             background: var(--white);
+            border: 1px solid var(--border-color);
             border-radius: var(--border-radius);
-            padding: 24px;
+            padding: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .saved-audio-card:hover {
             box-shadow: var(--box-shadow);
+            transform: translateY(-2px);
+        }
+
+        .audio-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .audio-card-title {
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--text-color);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .audio-card-meta {
+            font-size: 12px;
+            color: var(--text-color-secondary);
+            margin-bottom: 12px;
+        }
+
+        .audio-card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .audio-card-player {
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-color-secondary);
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .empty-text {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .empty-subtext {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        .panel {
+            background: transparent;
+            border-radius: 0;
+            padding: 0;
         }
 
         .panel-header {
@@ -144,15 +354,15 @@
         }
 
         .text-input {
-            min-height: 120px !important;
+            min-height: 400px !important;
             resize: vertical;
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             line-height: 1.6;
         }
 
         .text-input.long-text {
-            min-height: 200px !important;
-            max-height: 400px;
+            min-height: 500px !important;
+            max-height: 700px;
             border-color: var(--warning-color);
             box-shadow: 0 0 0 2px rgba(250, 173, 20, 0.1);
         }
@@ -258,37 +468,129 @@
         }
 
         .task-item {
-            padding: 16px;
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            margin-bottom: 12px;
+            display: grid;
+            grid-template-columns: 40px 100px 80px 1fr 300px;
+            gap: 12px;
+            padding: 10px 16px;
             background: var(--white);
-            transition: all 0.2s ease;
+            border-bottom: 1px solid var(--border-color);
+            align-items: center;
+            min-height: 44px;
+        }
+
+        .task-item.selected {
+            background-color: #e6f7ff;
         }
 
         .task-item:hover {
-            box-shadow: var(--box-shadow);
-            transform: translateY(-1px);
+            background-color: #f5f5f5;
+        }
+
+        .task-item.selected:hover {
+            background-color: #bae7ff;
+        }
+
+        .task-checkbox {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: var(--primary-color);
+        }
+
+        .batch-actions {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            background: #fff7e6;
+            border-bottom: 1px solid var(--border-color);
+            align-items: center;
+        }
+
+        .batch-actions.hidden {
+            display: none;
+        }
+
+        .batch-info {
+            font-size: 13px;
+            color: var(--text-color);
+            font-weight: 500;
+        }
+
+        .batch-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--white);
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.15s ease;
+        }
+
+        .batch-btn:hover {
+            background: #f0f0f0;
+            border-color: #d0d0d0;
+        }
+
+        .batch-btn.danger {
+            color: #dc3545;
+            border-color: #dc3545;
+        }
+
+        .batch-btn.danger:hover {
+            background: #dc3545;
+            color: var(--white);
+        }
+
+        .batch-btn.primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .batch-btn.primary:hover {
+            background: var(--primary-color);
+            color: var(--white);
+        }
+
+        .task-item:last-child {
+            border-bottom: none;
+        }
+
+        @media (max-width: 768px) {
+            .task-item {
+                grid-template-columns: 1fr;
+                gap: 8px;
+                padding: 12px;
+                min-height: auto;
+            }
         }
 
         .task-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
+            display: none;
         }
 
         .task-id {
-            font-weight: 600;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
             color: var(--primary-color);
+            background: #f0f0f0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 600;
+            text-align: center;
         }
 
         .status-badge {
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 500;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
             text-transform: uppercase;
+            text-align: center;
+            display: inline-block;
         }
 
         .status-pending {
@@ -316,35 +618,86 @@
         }
 
         .task-text {
-            color: var(--text-color-secondary);
-            font-size: 14px;
+            color: var(--text-color);
+            font-size: 12px;
             line-height: 1.4;
-            margin-bottom: 12px;
-            max-height: 60px;
             overflow: hidden;
+        }
+
+        .task-text-content {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+
+        .progress-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 8px;
+        }
+
+        .progress-text {
+            font-size: 10px;
+            color: var(--primary-color);
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .progress-bar-bg {
+            width: 60px;
+            height: 3px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--primary-color);
+            transition: width 0.3s ease;
+            border-radius: 2px;
         }
 
         .task-actions {
             display: flex;
-            gap: 8px;
+            gap: 4px;
             flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        @media (max-width: 768px) {
+            .task-actions {
+                justify-content: flex-start;
+            }
         }
 
         .mini-btn {
-            padding: 4px 12px;
+            padding: 4px 8px;
             border: 1px solid var(--border-color);
             border-radius: 4px;
             background: var(--white);
+            min-width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             color: var(--text-color);
             cursor: pointer;
-            font-size: 12px;
+            font-size: 14px;
             text-decoration: none;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
         }
 
         .mini-btn:hover {
-            border-color: var(--primary-color);
-            color: var(--primary-color);
+            background: #f0f0f0;
+            border-color: #d0d0d0;
+        }
+
+        .mini-btn:active {
+            background: #e0e0e0;
+            border-color: #c0c0c0;
         }
 
         .mini-btn.active {
@@ -539,19 +892,6 @@
             font-size: 14px;
         }
 
-        .ssml-preview {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 4px;
-            padding: 12px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            max-height: 200px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-
         .progress-bar {
             width: 100%;
             height: 8px;
@@ -598,9 +938,45 @@
             border: 1px solid #f5c6cb;
         }
 
-    
         /* 响应式设计 */
         @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+            }
+
+            .sidebar.collapsed {
+                width: 60px;
+            }
+
+            .sidebar-header {
+                display: none;
+            }
+
+            .menu-item {
+                padding: 12px;
+                justify-content: center;
+            }
+
+            .menu-text {
+                display: none;
+            }
+
+            .menu-icon {
+                font-size: 20px;
+            }
+
+            .content-area {
+                padding: 16px;
+            }
+
+            .app-title {
+                font-size: 18px;
+            }
+
+            .app-subtitle {
+                display: none;
+            }
+
             .detail-panel {
                 width: 100%;
                 left: -100%;
@@ -618,415 +994,650 @@
             .detail-item label {
                 margin-bottom: 5px;
             }
+
+            .modal-content {
+                width: 90%;
+                max-width: none;
+            }
+        }
+
+        /* 模态对话框样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .modal-content {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+            width: 400px;
+            max-width: 90%;
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-body label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .modal-footer .btn-primary {
+            width: auto;
+        }
+
+        .modal-footer .btn-secondary {
+            margin-right: 0;
+        }
+
+        /* 固定音频播放器样式 */
+        .fixed-audio-player {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 9000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .fixed-audio-player audio {
+            width: 300px;
+            height: 40px;
+        }
+
+        .close-audio-btn {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+            color: #666;
+            transition: all 0.2s ease;
+        }
+
+        .close-audio-btn:hover {
+            background: #e0e0e0;
+            color: #333;
         }
     </style>
 </head>
 <body>
     <div id="app">
-  
         <div class="app-container">
             <!-- 头部 -->
             <div class="app-header">
-                <h1 class="app-title">🎙️ AI Voice TTS</h1>
-                <p class="app-subtitle">智能语音合成系统 - 支持 SSML 高级功能</p>
+                <div>
+                    <h1 class="app-title">🎙️ AI Voice TTS</h1>
+                    <p class="app-subtitle">智能语音合成系统 - 支持 SSML 高级功能</p>
+                </div>
             </div>
 
-            <!-- 主要内容 -->
+            <!-- 主要内容：侧边栏 + 内容区域 -->
             <div class="main-content">
-                <!-- 左侧：创建任务 -->
-                <div class="panel">
-                    <div class="panel-header">
-                        <h2 class="panel-title">📝 创建语音任务</h2>
-                        <div class="mode-switch">
-                            <button
-                                class="mode-btn"
-                                :class="{active: mode === 'ssml'}"
-                                @click="mode = 'ssml'"
-                            >
-                                SSML 高级
-                            </button>
-                            <button
-                                class="mode-btn"
-                                :class="{active: mode === 'basic'}"
-                                @click="mode = 'basic'"
-                            >
-                                基础模式
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- SSML 模式 -->
-                    <div v-if="mode === 'ssml'">
-                        <!-- 预设选择 -->
-                        <div class="form-group">
-                            <label class="form-label">🎯 选择语音风格预设</label>
-                            <div class="preset-buttons">
-                                <div v-for="preset in ssmlPresets"
-                                     :key="preset.name"
-                                     class="preset-card"
-                                     :class="{selected: selectedPreset === preset.name}"
-                                     @click="selectPreset(preset.name)">
-                                    <div class="preset-name">{{ preset.description }}</div>
-                                    <div class="preset-details">
-                                        <div class="detail-item">
-                                            <span>语音:</span>
-                                            <span>{{ preset.voice }}</span>
-                                        </div>
-                                        <div class="detail-item">
-                                            <span>语速:</span>
-                                            <span>{{ preset.rate }}</span>
-                                        </div>
-                                        <div class="detail-item">
-                                            <span>音调:</span>
-                                            <span>{{ preset.pitch }}</span>
-                                        </div>
-                                        <div class="detail-item">
-                                            <span>停顿:</span>
-                                            <span>{{ preset.comma_pause }} / {{ preset.sentence_pause }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 高级设置 -->
-                        <div class="advanced-settings">
-                            <div class="form-group">
-                                <label class="form-label">⚙️ 高级设置（覆盖预设）</label>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                                    <div>
-                                        <label class="form-label" style="font-size: 12px; color: var(--text-color-secondary);">语音模型</label>
-                                        <select v-model="ssmlConfig.voice" class="ant-select">
-                                            <option value="zh-CN-XiaoxiaoNeural">晓晓 Neural</option>
-                                            <option value="zh-CN-YunxiNeural">云希 Neural</option>
-                                            <option value="zh-CN-YunyangNeural">云扬 Neural</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" style="font-size: 12px; color: var(--text-color-secondary);">语音风格</label>
-                                        <select v-model="ssmlConfig.style" class="ant-select">
-                                            <option value="">默认</option>
-                                            <option value="calm">平静</option>
-                                            <option value="gentle">温柔</option>
-                                            <option value="cheerful">活泼</option>
-                                            <option value="narrator">讲述者</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" style="font-size: 12px; color: var(--text-color-secondary);">语速 (负数=慢速)</label>
-                                        <input v-model="ssmlConfig.rate" type="text" class="ant-input" placeholder="例如: -15%">
-                                    </div>
-                                    <div>
-                                        <label class="form-label" style="font-size: 12px; color: var(--text-color-secondary);">音调 (正数=高音调)</label>
-                                        <input v-model="ssmlConfig.pitch" type="text" class="ant-input" placeholder="例如: +1%">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 文本输入 -->
-                        <div class="form-group">
-                            <label class="form-label">📖 输入文本内容</label>
-
-                            <!-- 文件上传和工具按钮 -->
-                            <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
-                                <input
-                                    type="file"
-                                    ref="fileInput"
-                                    @change="handleFileUpload"
-                                    accept=".txt,.md"
-                                    style="display: none;"
-                                >
-                                <button class="btn-secondary" @click="$refs.fileInput.click()" style="font-size: 12px; padding: 4px 12px;">
-                                    📁 上传文本文件
-                                </button>
-                                <button
-                                    class="btn-secondary"
-                                    @click="text = ''"
-                                    style="font-size: 12px; padding: 4px 12px;"
-                                    v-if="text"
-                                >
-                                    🗑️ 清空文本
-                                </button>
-                                <div style="margin-left: auto; font-size: 12px; color: var(--text-color-secondary); display: flex; align-items: center; gap: 10px;">
-                                    <span :style="{ color: text.length > 50000 ? 'var(--error-color)' : 'inherit' }">
-                                        字符数: {{ text.length.toLocaleString() }}
-                                    </span>
-                                    <span v-if="text.length > 50000" style="color: var(--warning-color);">
-                                        ⚠️ 长文本处理中
-                                    </span>
-                                </div>
-                            </div>
-
-                            <textarea
-                                    v-model="text"
-                                    class="ant-input text-input"
-                                    :class="{ 'long-text': text.length > 50000 }"
-                                    placeholder="请输入要转换为语音的文本内容...&#10;&#10;✅ 支持超长文本（建议5万字以内）&#10;✅ 系统会自动分段处理&#10;✅ 支持 .txt 和 .md 文件上传">
-                            </textarea>
-
-                            <!-- 文本统计和状态 -->
-                            <div style="margin-top: 8px; font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
-                                <div style="color: var(--text-color-secondary);">
-                                    <span v-if="text.length === 0">请输入文本或上传文件</span>
-                                    <span v-else-if="text.length < 1000">短文本 ({{
-                                        Math.ceil(text.length / 200) }}个音频片段)</span>
-                                    <span v-else-if="text.length < 10000">中等文本 ({{
-                                        Math.ceil(text.length / 1000) }}个音频片段)</span>
-                                    <span v-else-if="text.length < 50000">长文本 ({{
-                                        Math.ceil(text.length / 1000) }}个音频片段)</span>
-                                    <span v-else style="color: var(--warning-color); font-weight: bold;">
-                                        超长文本 ({{ Math.ceil(text.length / 1000) }}个音频片段)
-                                    </span>
-                                </div>
-                                <div style="display: flex; gap: 10px; align-items: center;">
-                                    <span v-if="text.length > 50000" style="color: var(--info-color);">
-                                        💡 建议使用分段模式
-                                    </span>
-                                    <span v-if="text.length > 100000" style="color: var(--error-color); font-weight: bold;">
-                                        ⚠️ 处理时间较长
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- SSML 预览 -->
-                        <div class="form-group" v-if="text && selectedPreset">
-                            <button class="btn-secondary" @click="previewSSML">
-                                👁️ 预览 SSML
-                            </button>
-                            <div class="ssml-preview" v-if="ssmlPreview">
-                                {{ ssmlPreview }}
-                            </div>
-                        </div>
-
-                        <!-- 创建按钮 -->
-                        <button
-                                class="btn-primary"
-                                @click="createSSMLTask"
-                                :disabled="!text || creating"
-                                :style="{
-                                    backgroundColor: text.length > 50000 ? 'var(--warning-color)' : '',
-                                    borderColor: text.length > 50000 ? 'var(--warning-color)' : ''
-                                }"
-                        >
-                            <span v-if="creating">
-                                <span class="loading-spinner"></span>
-                                <span v-if="text.length > 100000">
-                                    正在处理超长文本... (预计需要较长时间)
-                                </span>
-                                <span v-else-if="text.length > 50000">
-                                    正在处理长文本...
-                                </span>
-                                <span v-else>
-                                    正在创建任务...
-                                </span>
-                            </span>
-                            <span v-else>
-                                <span v-if="text.length > 100000">
-                                    🚀 开始合成超长文本 ({{ Math.ceil(text.length / 1000) }}片段)
-                                </span>
-                                <span v-else-if="text.length > 50000">
-                                    🚀 开始合成长文本 ({{ Math.ceil(text.length / 1000) }}片段)
-                                </span>
-                                <span v-else>
-                                    🚀 开始语音合成
-                                </span>
-                            </span>
+                <!-- 左侧边栏菜单 -->
+                <div class="sidebar" :class="{ collapsed: sidebarCollapsed }">
+                    <div class="sidebar-header">
+                        <button class="collapse-btn" @click="sidebarCollapsed = !sidebarCollapsed" :title="sidebarCollapsed ? '展开菜单' : '折叠菜单'">
+                            {{ sidebarCollapsed ? '▶' : '◀' }}
                         </button>
                     </div>
-
-                    <!-- 基础模式 -->
-                    <div v-else>
-                        <!-- 语音选择 -->
-                        <div class="form-group">
-                            <label class="form-label">🎤 选择语音模型</label>
-                            <select v-model="basicConfig.voice" class="ant-select">
-                                <option value="zh-CN-XiaoxiaoNeural">晓晓 Neural (女声)</option>
-                                <option value="zh-CN-YunxiNeural">云希 Neural (男声)</option>
-                                <option value="zh-CN-YunyangNeural">云扬 Neural (男声)</option>
-                            </select>
-                        </div>
-
-                        <!-- 语速和音调 -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                            <div class="form-group">
-                                <label class="form-label">⚡ 语速</label>
-                                <input v-model="basicConfig.rate" type="text" class="ant-input" placeholder="例如: -15%">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">🎵 音调</label>
-                                <input v-model="basicConfig.pitch" type="text" class="ant-input" placeholder="例如: -2Hz">
-                            </div>
-                        </div>
-
-                        <!-- 文本输入 -->
-                        <div class="form-group">
-                            <label class="form-label">📖 输入文本内容</label>
-
-                            <!-- 文件上传和工具按钮 -->
-                            <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
-                                <input
-                                    type="file"
-                                    ref="fileInputBasic"
-                                    @change="handleFileUpload"
-                                    accept=".txt,.md"
-                                    style="display: none;"
-                                >
-                                <button class="btn-secondary" @click="$refs.fileInputBasic.click()" style="font-size: 12px; padding: 4px 12px;">
-                                    📁 上传文本文件
-                                </button>
-                                <button
-                                    class="btn-secondary"
-                                    @click="text = ''"
-                                    style="font-size: 12px; padding: 4px 12px;"
-                                    v-if="text"
-                                >
-                                    🗑️ 清空文本
-                                </button>
-                                <div style="margin-left: auto; font-size: 12px; color: var(--text-color-secondary); display: flex; align-items: center; gap: 10px;">
-                                    <span :style="{ color: text.length > 50000 ? 'var(--error-color)' : 'inherit' }">
-                                        字符数: {{ text.length.toLocaleString() }}
-                                    </span>
-                                    <span v-if="text.length > 50000" style="color: var(--warning-color);">
-                                        ⚠️ 长文本处理中
-                                    </span>
-                                </div>
-                            </div>
-
-                            <textarea
-                                    v-model="text"
-                                    class="ant-input text-input"
-                                    :class="{ 'long-text': text.length > 50000 }"
-                                    placeholder="请输入要转换为语音的文本内容...&#10;&#10;✅ 支持超长文本（建议5万字以内）&#10;✅ 系统会自动分段处理&#10;✅ 支持 .txt 和 .md 文件上传">
-                            </textarea>
-
-                            <!-- 文本统计和状态 -->
-                            <div style="margin-top: 8px; font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
-                                <div style="color: var(--text-color-secondary);">
-                                    <span v-if="text.length === 0">请输入文本或上传文件</span>
-                                    <span v-else-if="text.length < 1000">短文本 ({{
-                                        Math.ceil(text.length / 200) }}个音频片段)</span>
-                                    <span v-else-if="text.length < 10000">中等文本 ({{
-                                        Math.ceil(text.length / 1000) }}个音频片段)</span>
-                                    <span v-else-if="text.length < 50000">长文本 ({{
-                                        Math.ceil(text.length / 1000) }}个音频片段)</span>
-                                    <span v-else style="color: var(--warning-color); font-weight: bold;">
-                                        超长文本 ({{ Math.ceil(text.length / 1000) }}个音频片段)
-                                    </span>
-                                </div>
-                                <div style="display: flex; gap: 10px; align-items: center;">
-                                    <span v-if="text.length > 50000" style="color: var(--info-color);">
-                                        💡 建议使用分段模式
-                                    </span>
-                                    <span v-if="text.length > 100000" style="color: var(--error-color); font-weight: bold;">
-                                        ⚠️ 处理时间较长
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 创建按钮 -->
-                        <button
-                                class="btn-primary"
-                                @click="createBasicTask"
-                                :disabled="!text || creating"
-                                :style="{
-                                    backgroundColor: text.length > 50000 ? 'var(--warning-color)' : '',
-                                    borderColor: text.length > 50000 ? 'var(--warning-color)' : ''
-                                }"
+                    <ul class="menu-list">
+                        <li
+                            class="menu-item"
+                            :class="{ active: activeTab === 'create' }"
+                            @click="activeTab = 'create'"
+                            :title="sidebarCollapsed ? '创建任务' : ''"
                         >
-                            <span v-if="creating">
-                                <span class="loading-spinner"></span>
-                                <span v-if="text.length > 100000">
-                                    正在处理超长文本... (预计需要较长时间)
-                                </span>
-                                <span v-else-if="text.length > 50000">
-                                    正在处理长文本...
-                                </span>
-                                <span v-else>
-                                    正在创建任务...
-                                </span>
-                            </span>
-                            <span v-else>
-                                <span v-if="text.length > 100000">
-                                    🚀 开始合成超长文本 ({{ Math.ceil(text.length / 1000) }}片段)
-                                </span>
-                                <span v-else-if="text.length > 50000">
-                                    🚀 开始合成长文本 ({{ Math.ceil(text.length / 1000) }}片段)
-                                </span>
-                                <span v-else>
-                                    🚀 开始语音合成
-                                </span>
-                            </span>
-                        </button>
+                            <span class="menu-icon">📝</span>
+                            <span class="menu-text">创建任务</span>
+                        </li>
+                        <li
+                            class="menu-item"
+                            :class="{ active: activeTab === 'tasks' }"
+                            @click="activeTab = 'tasks'"
+                            :title="sidebarCollapsed ? '任务列表' : ''"
+                        >
+                            <span class="menu-icon">📋</span>
+                            <span class="menu-text">任务列表</span>
+                        </li>
+                        <li
+                            class="menu-item"
+                            :class="{ active: activeTab === 'saved' }"
+                            @click="activeTab = 'saved'"
+                            :title="sidebarCollapsed ? '保存的音频' : ''"
+                        >
+                            <span class="menu-icon">💾</span>
+                            <span class="menu-text">保存的音频</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- 右侧内容区域 -->
+                <div class="content-area">
+                    <!-- 创建任务页面 -->
+                    <div v-show="activeTab === 'create'" class="content-panel">
+                        <div class="panel">
+                            <div class="panel-header">
+                                <h2 class="panel-title">📝 创建语音任务</h2>
+                                        <div class="mode-switch">
+                                            <button
+                                                class="mode-btn"
+                                                :class="{active: mode === 'ssml'}"
+                                                @click="mode = 'ssml'"
+                                            >
+                                                SSML 高级
+                                            </button>
+                                            <button
+                                                class="mode-btn"
+                                                :class="{active: mode === 'basic'}"
+                                                @click="mode = 'basic'"
+                                            >
+                                                基础模式
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- SSML 模式 -->
+                                    <div v-if="mode === 'ssml'">
+                                        <!-- 预设选择 -->
+                                        <div class="form-group">
+                                            <label class="form-label">🎯 选择语音风格预设</label>
+                                            <div class="preset-buttons">
+                                                <div v-for="preset in ssmlPresets"
+                                                     :key="preset.name"
+                                                     class="preset-card"
+                                                     :class="{selected: selectedPreset === preset.name}"
+                                                     @click="selectPreset(preset.name)">
+                                                    <div class="preset-name">{{ preset.description }}</div>
+                                                    <div class="preset-details">
+                                                        <div class="detail-item">
+                                                            <span>语音:</span>
+                                                            <span>{{ preset.voice }}</span>
+                                                        </div>
+                                                        <div class="detail-item">
+                                                            <span>语速:</span>
+                                                            <span>{{ preset.rate }}</span>
+                                                        </div>
+                                                        <div class="detail-item">
+                                                            <span>音调:</span>
+                                                            <span>{{ preset.pitch }}</span>
+                                                        </div>
+                                                        <div class="detail-item">
+                                                            <span>停顿:</span>
+                                                            <span>{{ preset.comma_pause }} / {{ preset.sentence_pause }}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- 高级设置 -->
+                                        <div class="advanced-settings">
+                                            <div class="form-group">
+                                                <label class="form-label">⚙️ 高级设置（覆盖预设）</label>
+                                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                                    <div>
+                                                        <label class="form-label" style="font-size: 12px; color: var(--text-color-secondary);">语音模型</label>
+                                                        <select v-model="ssmlConfig.voice" class="ant-select">
+                                                            <option value="zh-CN-XiaoxiaoNeural">晓晓 Neural</option>
+                                                            <option value="zh-CN-YunxiNeural">云希 Neural</option>
+                                                            <option value="zh-CN-YunyangNeural">云扬 Neural</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label class="form-label" style="font-size: 12px; color: var(--text-color-secondary);">语音风格</label>
+                                                        <select v-model="ssmlConfig.style" class="ant-select">
+                                                            <option value="">默认</option>
+                                                            <option value="calm">平静</option>
+                                                            <option value="gentle">温柔</option>
+                                                            <option value="cheerful">活泼</option>
+                                                            <option value="narrator">讲述者</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label class="form-label" style="font-size: 12px; color: var(--text-color-secondary);">语速 (负数=慢速)</label>
+                                                        <input v-model="ssmlConfig.rate" type="text" class="ant-input" placeholder="例如: -15%">
+                                                    </div>
+                                                    <div>
+                                                        <label class="form-label" style="font-size: 12px; color: var(--text-color-secondary);">音调 (正数=高音调)</label>
+                                                        <input v-model="ssmlConfig.pitch" type="text" class="ant-input" placeholder="例如: +1%">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- 文本输入 -->
+                                        <div class="form-group">
+                                            <label class="form-label">📖 输入文本内容</label>
+
+                                            <!-- 文件上传和工具按钮 -->
+                                            <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+                                                <input
+                                                    type="file"
+                                                    ref="fileInput"
+                                                    @change="handleFileUpload"
+                                                    accept=".txt,.md"
+                                                    style="display: none;"
+                                                >
+                                                <button class="btn-secondary" @click="$refs.fileInput.click()" style="font-size: 12px; padding: 4px 12px;">
+                                                    📁 上传文本文件
+                                                </button>
+                                                <button
+                                                    class="btn-secondary"
+                                                    @click="text = ''"
+                                                    style="font-size: 12px; padding: 4px 12px;"
+                                                    v-if="text"
+                                                >
+                                                    🗑️ 清空文本
+                                                </button>
+                                                <div style="margin-left: auto; font-size: 12px; color: var(--text-color-secondary); display: flex; align-items: center; gap: 10px;">
+                                                    <span :style="{ color: text.length > 50000 ? 'var(--error-color)' : 'inherit' }">
+                                                        字符数: {{ text.length.toLocaleString() }}
+                                                    </span>
+                                                    <span v-if="text.length > 50000" style="color: var(--warning-color);">
+                                                        ⚠️ 长文本处理中
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <textarea
+                                                    v-model="text"
+                                                    class="ant-input text-input"
+                                                    :class="{ 'long-text': text.length > 50000 }"
+                                                    placeholder="请输入要转换为语音的文本内容...&#10;&#10;✅ 支持超长文本（建议5万字以内）&#10;✅ 系统会自动分段处理&#10;✅ 支持 .txt 和 .md 文件上传">
+                                            </textarea>
+
+                                            <!-- 文本统计和状态 -->
+                                            <div style="margin-top: 8px; font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
+                                                <div style="color: var(--text-color-secondary);">
+                                                    <span v-if="text.length === 0">请输入文本或上传文件</span>
+                                                    <span v-else-if="text.length < 1000">短文本 ({{
+                                                        Math.ceil(text.length / 200) }}个音频片段)</span>
+                                                    <span v-else-if="text.length < 10000">中等文本 ({{
+                                                        Math.ceil(text.length / 1000) }}个音频片段)</span>
+                                                    <span v-else-if="text.length < 50000">长文本 ({{
+                                                        Math.ceil(text.length / 1000) }}个音频片段)</span>
+                                                    <span v-else style="color: var(--warning-color); font-weight: bold;">
+                                                        超长文本 ({{ Math.ceil(text.length / 1000) }}个音频片段)
+                                                    </span>
+                                                </div>
+                                                <div style="display: flex; gap: 10px; align-items: center;">
+                                                    <span v-if="text.length > 50000" style="color: var(--info-color);">
+                                                        💡 建议使用分段模式
+                                                    </span>
+                                                    <span v-if="text.length > 100000" style="color: var(--error-color); font-weight: bold;">
+                                                        ⚠️ 处理时间较长
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- SSML 预览 -->
+                                        <div class="form-group" v-if="text && selectedPreset">
+                                            <button class="btn-secondary" @click="previewSSML">
+                                                👁️ 预览 SSML
+                                            </button>
+                                            <div class="ssml-preview" v-if="ssmlPreview">
+                                                {{ ssmlPreview }}
+                                            </div>
+                                        </div>
+
+                                        <!-- 创建按钮 -->
+                                        <button
+                                                class="btn-primary"
+                                                @click="createSSMLTask"
+                                                :disabled="!text || creating"
+                                                :style="{
+                                                    backgroundColor: text.length > 50000 ? 'var(--warning-color)' : '',
+                                                    borderColor: text.length > 50000 ? 'var(--warning-color)' : ''
+                                                }"
+                                        >
+                                            <span v-if="creating">
+                                                <span class="loading-spinner"></span>
+                                                <span v-if="text.length > 100000">
+                                                    正在处理超长文本... (预计需要较长时间)
+                                                </span>
+                                                <span v-else-if="text.length > 50000">
+                                                    正在处理长文本...
+                                                </span>
+                                                <span v-else>
+                                                    正在创建任务...
+                                                </span>
+                                            </span>
+                                            <span v-else>
+                                                <span v-if="text.length > 100000">
+                                                    🚀 开始合成超长文本 ({{ Math.ceil(text.length / 1000) }}片段)
+                                                </span>
+                                                <span v-else-if="text.length > 50000">
+                                                    🚀 开始合成长文本 ({{ Math.ceil(text.length / 1000) }}片段)
+                                                </span>
+                                                <span v-else>
+                                                    🚀 开始语音合成
+                                                </span>
+                                            </span>
+                                        </button>
+                                    </div>
+
+                                    <!-- 基础模式 -->
+                                    <div v-else>
+                                        <!-- 语音选择 -->
+                                        <div class="form-group">
+                                            <label class="form-label">🎤 选择语音模型</label>
+                                            <select v-model="basicConfig.voice" class="ant-select">
+                                                <option value="zh-CN-XiaoxiaoNeural">晓晓 Neural (女声)</option>
+                                                <option value="zh-CN-YunxiNeural">云希 Neural (男声)</option>
+                                                <option value="zh-CN-YunyangNeural">云扬 Neural (男声)</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- 语速和音调 -->
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                            <div class="form-group">
+                                                <label class="form-label">⚡ 语速</label>
+                                                <input v-model="basicConfig.rate" type="text" class="ant-input" placeholder="例如: -15%">
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label">🎵 音调</label>
+                                                <input v-model="basicConfig.pitch" type="text" class="ant-input" placeholder="例如: -2Hz">
+                                            </div>
+                                        </div>
+
+                                        <!-- 文本输入 -->
+                                        <div class="form-group">
+                                            <label class="form-label">📖 输入文本内容</label>
+
+                                            <!-- 文件上传和工具按钮 -->
+                                            <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+                                                <input
+                                                    type="file"
+                                                    ref="fileInputBasic"
+                                                    @change="handleFileUpload"
+                                                    accept=".txt,.md"
+                                                    style="display: none;"
+                                                >
+                                                <button class="btn-secondary" @click="$refs.fileInputBasic.click()" style="font-size: 12px; padding: 4px 12px;">
+                                                    📁 上传文本文件
+                                                </button>
+                                                <button
+                                                    class="btn-secondary"
+                                                    @click="text = ''"
+                                                    style="font-size: 12px; padding: 4px 12px;"
+                                                    v-if="text"
+                                                >
+                                                    🗑️ 清空文本
+                                                </button>
+                                                <div style="margin-left: auto; font-size: 12px; color: var(--text-color-secondary); display: flex; align-items: center; gap: 10px;">
+                                                    <span :style="{ color: text.length > 50000 ? 'var(--error-color)' : 'inherit' }">
+                                                        字符数: {{ text.length.toLocaleString() }}
+                                                    </span>
+                                                    <span v-if="text.length > 50000" style="color: var(--warning-color);">
+                                                        ⚠️ 长文本处理中
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <textarea
+                                                    v-model="text"
+                                                    class="ant-input text-input"
+                                                    :class="{ 'long-text': text.length > 50000 }"
+                                                    placeholder="请输入要转换为语音的文本内容...&#10;&#10;✅ 支持超长文本（建议5万字以内）&#10;✅ 系统会自动分段处理&#10;✅ 支持 .txt 和 .md 文件上传">
+                                            </textarea>
+
+                                            <!-- 文本统计和状态 -->
+                                            <div style="margin-top: 8px; font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
+                                                <div style="color: var(--text-color-secondary);">
+                                                    <span v-if="text.length === 0">请输入文本或上传文件</span>
+                                                    <span v-else-if="text.length < 1000">短文本 ({{
+                                                        Math.ceil(text.length / 200) }}个音频片段)</span>
+                                                    <span v-else-if="text.length < 10000">中等文本 ({{
+                                                        Math.ceil(text.length / 1000) }}个音频片段)</span>
+                                                    <span v-else-if="text.length < 50000">长文本 ({{
+                                                        Math.ceil(text.length / 1000) }}个音频片段)</span>
+                                                    <span v-else style="color: var(--warning-color); font-weight: bold;">
+                                                        超长文本 ({{ Math.ceil(text.length / 1000) }}个音频片段)
+                                                    </span>
+                                                </div>
+                                                <div style="display: flex; gap: 10px; align-items: center;">
+                                                    <span v-if="text.length > 50000" style="color: var(--info-color);">
+                                                        💡 建议使用分段模式
+                                                    </span>
+                                                    <span v-if="text.length > 100000" style="color: var(--error-color); font-weight: bold;">
+                                                        ⚠️ 处理时间较长
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- 创建按钮 -->
+                                        <button
+                                                class="btn-primary"
+                                                @click="createBasicTask"
+                                                :disabled="!text || creating"
+                                                :style="{
+                                                    backgroundColor: text.length > 50000 ? 'var(--warning-color)' : '',
+                                                    borderColor: text.length > 50000 ? 'var(--warning-color)' : ''
+                                                }"
+                                        >
+                                            <span v-if="creating">
+                                                <span class="loading-spinner"></span>
+                                                <span v-if="text.length > 100000">
+                                                    正在处理超长文本... (预计需要较长时间)
+                                                </span>
+                                                <span v-else-if="text.length > 50000">
+                                                    正在处理长文本...
+                                                </span>
+                                                <span v-else>
+                                                    正在创建任务...
+                                                </span>
+                                            </span>
+                                            <span v-else>
+                                                <span v-if="text.length > 100000">
+                                                    🚀 开始合成超长文本 ({{ Math.ceil(text.length / 1000) }}片段)
+                                                </span>
+                                                <span v-else-if="text.length > 50000">
+                                                    🚀 开始合成长文本 ({{ Math.ceil(text.length / 1000) }}片段)
+                                                </span>
+                                                <span v-else>
+                                                    🚀 开始语音合成
+                                                </span>
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+                    </div>
+
+                <!-- 任务列表页面 -->
+                <div v-show="activeTab === 'tasks'" class="content-panel">
+                        <div class="panel-header">
+                            <h2 class="panel-title">📋 任务列表</h2>
+                                    <button class="btn-secondary" @click="refreshTasks">
+                                        🔄 刷新
+                                    </button>
+                                </div>
+
+                                <div v-if="tasks.length === 0" class="empty-state">
+                                    <div class="empty-icon">📭</div>
+                                    <div class="empty-text">暂无任务</div>
+                                    <div class="empty-subtext">创建您的第一个语音合成任务吧！</div>
+                                </div>
+
+                                <div v-else>
+                                    <!-- 批量操作栏 -->
+                                    <div class="batch-actions" :class="{ hidden: selectedTasks.length === 0 }">
+                                        <span class="batch-info">已选择 {{ selectedTasks.length }} 个任务</span>
+                                        <button class="batch-btn danger" @click="batchDelete">
+                                            🗑️ 批量删除
+                                        </button>
+                                        <button class="batch-btn" @click="clearSelection">
+                                            ✖️ 取消选择
+                                        </button>
+                                    </div>
+
+                                    <div class="task-list-container">
+                                        <!-- 表头 -->
+                                        <div class="task-list-header">
+                                            <div>
+                                                <input
+                                                    type="checkbox"
+                                                    class="task-checkbox"
+                                                    :checked="isAllSelected"
+                                                    @change="toggleSelectAll"
+                                                    :indeterminate="selectedTasks.length > 0 && !isAllSelected"
+                                                >
+                                            </div>
+                                            <div>任务ID</div>
+                                            <div>状态</div>
+                                            <div>文本内容</div>
+                                            <div style="text-align: right;">操作</div>
+                                        </div>
+
+                                        <!-- 任务列表 -->
+                                        <div v-for="task in tasks" :key="task.task_id" class="task-item" :class="{ selected: selectedTasks.includes(task.task_id) }">
+                                            <div>
+                                                <input
+                                                        type="checkbox"
+                                                        class="task-checkbox"
+                                                        :checked="selectedTasks.includes(task.task_id)"
+                                                        @change="toggleTaskSelection(task.task_id)"
+                                                    >
+                                            </div>
+                                            <div class="task-id">{{ task.task_id.substring(0, 8) }}</div>
+                                            <div :class="['status-badge', `status-${task.status.toLowerCase()}`]">
+                                                {{ getStatusText(task.status) }}
+                                            </div>
+                                        <div class="task-text">
+                                            <span class="task-text-content">{{ task.text }}</span>
+                                            <span v-if="task.progress && task.status === 'processing'" class="progress-container">
+                                                <span class="progress-text">{{ Math.round(task.progress * 100) }}%</span>
+                                                <span class="progress-bar-bg">
+                                                    <span class="progress-bar-fill" :style="{width: task.progress * 100 + '%'}"></span>
+                                                </span>
+                                            </span>
+                                        </div>
+                                        <div class="task-actions">
+                                            <button class="mini-btn"
+                                                    :class="{ 'active': showDetailPanel && currentTaskDetail && currentTaskDetail.task_id === task.task_id }"
+                                                    @click="viewTaskDetail(task.task_id)"
+                                                    title="详情">
+                                                📄
+                                            </button>
+                                            <button class="mini-btn" @click="refreshTask(task.task_id)" title="刷新">
+                                                🔄
+                                            </button>
+                                            <button v-if="task.audio_url" class="mini-btn audio" @click="playAudio(task.audio_url)" title="播放">
+                                                ▶️
+                                            </button>
+                                            <button v-if="task.audio_url" class="mini-btn" @click="downloadAudio(task.audio_url, task.task_id)" title="下载音频">
+                                                ⬇️
+                                            </button>
+                                            <button v-if="task.audio_url && task.status === 'completed'" class="mini-btn" @click="showSaveDialog(task.task_id)" style="color: var(--primary-color); border-color: var(--primary-color);" title="保存到收藏">
+                                                💾
+                                            </button>
+                                            <button v-if="task.status === 'pending' || task.status === 'processing'" class="mini-btn" @click="cancelTask(task.task_id)" title="取消任务">
+                                                ❌
+                                            </button>
+                                            <button class="mini-btn" @click="deleteTask(task.task_id)" title="删除任务" style="color: #dc3545; border-color: #dc3545;">
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                     </div>
                 </div>
 
-                <!-- 右侧：任务列表 -->
-                <div class="panel">
-                    <div class="panel-header">
-                        <h2 class="panel-title">📋 任务列表</h2>
-                        <button class="btn-secondary" @click="refreshTasks">
-                            🔄 刷新
-                        </button>
-                    </div>
+                <!-- 保存的音频页面 -->
+                <div v-show="activeTab === 'saved'" class="content-panel">
+                        <!-- 调试信息 -->
+                        <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 4px;">
+                            <strong>调试信息:</strong> activeTab = '{{ activeTab }}', savedAudios.length = {{ savedAudios ? savedAudios.length : 0 }}
+                        </div>
 
-                    <div v-if="tasks.length === 0" style="text-align: center; padding: 40px; color: var(--text-color-secondary);">
-                        <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
-                        <div>暂无任务</div>
-                        <div style="font-size: 14px; margin-top: 8px;">创建您的第一个语音合成任务吧！</div>
-                    </div>
+                        <div class="panel-header">
+                            <h2 class="panel-title">💾 保存的音频</h2>
+                            <button class="btn-secondary" @click="loadSavedAudios">
+                                🔄 刷新
+                            </button>
+                        </div>
 
-                    <div v-else>
-                        <div v-for="task in tasks" :key="task.task_id" class="task-item">
-                            <div class="task-header">
-                                <div class="task-id">{{ task.task_id.substring(0, 8) }}</div>
-                                <div :class="['status-badge', `status-${task.status.toLowerCase()}`]">
-                                    {{ getStatusText(task.status) }}
+                        <div v-if="savedAudios.length === 0" class="empty-state">
+                            <div class="empty-icon">🎵</div>
+                            <div class="empty-text">暂无保存的音频</div>
+                            <div class="empty-subtext">完成任务后点击"保存"按钮即可保存音频</div>
+                        </div>
+
+                        <div v-else class="saved-audio-list">
+                            <div v-for="audio in savedAudios" :key="audio.id" class="saved-audio-card">
+                                <div class="audio-card-header">
+                                    <div class="audio-card-title" :title="audio.name">{{ audio.name }}</div>
+                                </div>
+                                <div class="audio-card-meta">
+                                    <div>保存时间: {{ formatDateTime(audio.created_at) }}</div>
+                                    <div v-if="audio.duration_seconds">时长: {{ audio.duration_seconds }} 秒</div>
+                                    <div v-if="audio.file_size_bytes">大小: {{ formatFileSize(audio.file_size_bytes) }}</div>
+                                </div>
+                                <audio :src="getFullAudioUrl(audio.audio_url)" controls class="audio-card-player"></audio>
+                                <div class="audio-card-actions">
+                                    <button class="mini-btn" @click="playAudio(audio.audio_url)" title="播放">
+                                        ▶️
+                                    </button>
+                                    <button class="mini-btn" @click="downloadAudio(audio.audio_url, audio.name)" title="下载">
+                                        ⬇️
+                                    </button>
+                                    <button class="mini-btn" @click="deleteSavedAudio(audio.id)" style="color: #dc3545; border-color: #dc3545;" title="删除">
+                                        🗑️
+                                    </button>
                                 </div>
                             </div>
-                            <div class="task-text">{{ task.text }}</div>
-                            <div v-if="task.progress && task.status === 'processing'" style="margin: 8px 0;">
-                                <div style="font-size: 12px; color: var(--text-color-secondary);">进度: {{ Math.round(task.progress * 100) }}%</div>
-                                <div style="width: 100%; height: 4px; background: var(--border-color); border-radius: 2px; overflow: hidden;">
-                                    <div style="width: {{ task.progress * 100 }}%; height: 100%; background: var(--primary-color); transition: width 0.3s ease;"></div>
-                                </div>
-                            </div>
-                            <div class="task-actions">
-                                <button class="mini-btn"
-                                        :class="{ 'active': showDetailPanel && currentTaskDetail && currentTaskDetail.task_id === task.task_id }"
-                                        @click="viewTaskDetail(task.task_id)">
-                                    <span v-if="showDetailPanel && currentTaskDetail && currentTaskDetail.task_id === task.task_id">✖️</span>
-                                    <span v-else>📄</span>
-                                    <span v-if="showDetailPanel && currentTaskDetail && currentTaskDetail.task_id === task.task_id">关闭</span>
-                                    <span v-else>详情</span>
-                                </button>
-                                <button class="mini-btn" @click="refreshTask(task.task_id)">
-                                    🔄 刷新
-                                </button>
-                                <button v-if="task.audio_url" class="mini-btn audio" @click="playAudio(task.audio_url)">
-                                    🎵 播放
-                                </button>
-                                <button v-if="task.audio_url" class="mini-btn" @click="downloadAudio(task.audio_url, task.task_id)">
-                                    💾 下载
-                                </button>
-                                <button v-if="task.status === 'pending' || task.status === 'processing'" class="mini-btn" @click="cancelTask(task.task_id)">
-                                    ❌ 取消
-                                </button>
-                                <button v-if="task.audio_url" class="mini-btn" @click="deleteTask(task.task_id)">
-                                    🗑️ 删除
-                                </button>
-                            </div>
-                            <audio v-if="task.audio_url && currentAudio === getFullAudioUrl(task.audio_url)" :src="getFullAudioUrl(task.audio_url)" class="audio-player" controls></audio>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- 任务详情侧边栏 -->
-        <div v-if="showDetailPanel" class="detail-panel" :class="{ 'show': showDetailPanel }">
+            <!-- 任务详情侧边栏 -->
+            <div v-if="showDetailPanel" class="detail-panel" :class="{ 'show': showDetailPanel }">
             <div class="detail-header">
                 <h3>📄 任务详情</h3>
                 <button class="close-btn" @click="closeDetailPanel">×</button>
@@ -1133,6 +1744,9 @@
                             <button class="btn-secondary" @click="downloadAudio(currentTaskDetail.audio_url, currentTaskDetail.task_id)">
                                 💾 下载音频
                             </button>
+                            <button class="btn-secondary" @click="showSaveDialog(currentTaskDetail.task_id)">
+                                💾 保存音频
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1144,6 +1758,38 @@
                 </div>
             </div>
         </div>
+
+        <!-- 固定音频播放器 -->
+        <div v-if="currentAudio" class="fixed-audio-player">
+            <audio :src="currentAudio" controls autoplay></audio>
+            <button class="close-audio-btn" @click="currentAudio = null">×</button>
+        </div>
+
+        <!-- 保存音频对话框 -->
+        <div v-if="showSaveModal" class="modal-overlay" @click.self="showSaveModal = false">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>保存音频</h3>
+                    <button class="close-btn" @click="showSaveModal = false">×</button>
+                </div>
+                <div class="modal-body">
+                    <label for="audio-name">音频名称：</label>
+                    <input
+                        id="audio-name"
+                        v-model="saveAudioName"
+                        type="text"
+                        class="ant-input"
+                        placeholder="请输入音频名称"
+                        @keyup.enter="saveAudio"
+                    >
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" @click="showSaveModal = false">取消</button>
+                    <button class="btn-primary" @click="saveAudio" :disabled="!saveAudioName.trim()">保存</button>
+                </div>
+            </div>
+        </div>
+        </div>
     </div>
 
     <script>
@@ -1152,12 +1798,15 @@
         createApp({
             data() {
                 return {
-                    mode: 'ssml', // ssml 或 basic
+                    sidebarCollapsed: false,
+                    activeTab: 'create',
+                    mode: 'ssml',
                     text: '',
                     creating: false,
                     currentAudio: null,
                     ssmlPreview: '',
                     selectedPreset: 'BEDTIME_BALANCED',
+                    selectedTasks: [],
                     ssmlPresets: {},
                     ssmlConfig: {
                         voice: 'zh-CN-XiaoxiaoNeural',
@@ -1173,12 +1822,17 @@
                     tasks: [],
                     refreshInterval: null,
                     showDetailPanel: false,
-                    currentTaskDetail: null
+                    currentTaskDetail: null,
+                    savedAudios: [],
+                    showSaveModal: false,
+                    saveAudioName: '',
+                    saveTaskId: null
                 };
             },
             mounted() {
                 this.loadSSMLPresets();
                 this.loadTasks();
+                this.loadSavedAudios();
                 this.startAutoRefresh();
             },
             beforeUnmount() {
@@ -1187,25 +1841,64 @@
                 }
             },
             computed: {
-                // 构建完整的音频URL
-                getFullAudioUrl() {
-                    return (audioUrl) => {
-                        return audioUrl && (audioUrl.startsWith('http') ? audioUrl : `http://localhost:8000${audioUrl}`);
-                    };
+                isAllSelected() {
+                    return this.tasks.length > 0 && this.selectedTasks.length === this.tasks.length;
+                }
+            },
+            watch: {
+                showSaveModal(newVal) {
+                    console.log('showSaveModal changed to:', newVal);
                 }
             },
             methods: {
+                toggleTaskSelection(taskId) {
+                    const index = this.selectedTasks.indexOf(taskId);
+                    if (index > -1) {
+                        this.selectedTasks.splice(index, 1);
+                    } else {
+                        this.selectedTasks.push(taskId);
+                    }
+                },
+                toggleSelectAll() {
+                    if (this.isAllSelected) {
+                        this.selectedTasks = [];
+                    } else {
+                        this.selectedTasks = this.tasks.map(task => task.task_id);
+                    }
+                },
+                clearSelection() {
+                    this.selectedTasks = [];
+                },
+                async batchDelete() {
+                    if (this.selectedTasks.length === 0) return;
+
+                    const count = this.selectedTasks.length;
+                    if (!confirm(`确定要删除选中的 ${count} 个任务吗？`)) return;
+
+                    try {
+                        const deletePromises = this.selectedTasks.map(taskId =>
+                            axios.delete(`http://localhost:8000/api/tts/${taskId}`)
+                        );
+
+                        await Promise.all(deletePromises);
+
+                        this.showNotification(`成功删除 ${count} 个任务`, 'success');
+                        this.selectedTasks = [];
+                        await this.loadTasks();
+                    } catch (error) {
+                        this.showNotification('批量删除失败: ' + (error.response?.data?.detail || error.message), 'error');
+                        console.error('Failed to batch delete tasks:', error);
+                    }
+                },
                 handleFileUpload(event) {
                     const file = event.target.files[0];
                     if (!file) return;
 
-                    // 检查文件类型
                     if (!file.name.endsWith('.txt') && !file.name.endsWith('.md')) {
                         this.showNotification('请上传 .txt 或 .md 文件', 'error');
                         return;
                     }
 
-                    // 检查文件大小 (限制 10MB)
                     if (file.size > 10 * 1024 * 1024) {
                         this.showNotification('文件大小不能超过 10MB', 'error');
                         return;
@@ -1216,16 +1909,13 @@
                         try {
                             const content = e.target.result;
 
-                            // 简单的文本验证
                             if (!content || content.trim().length === 0) {
                                 this.showNotification('文件内容为空', 'error');
                                 return;
                             }
 
-                            // 设置文本内容
                             this.text = content;
 
-                            // 显示成功消息
                             const fileSize = (file.size / 1024).toFixed(1);
                             this.showNotification(
                                 `文件上传成功！${file.name} (${fileSize}KB, ${content.length.toLocaleString()} 字符)`,
@@ -1242,10 +1932,7 @@
                         this.showNotification('文件读取失败', 'error');
                     };
 
-                    // 读取文件
                     reader.readAsText(file, 'UTF-8');
-
-                    // 清空文件输入框，允许重复上传同一文件
                     event.target.value = '';
                 },
 
@@ -1348,7 +2035,7 @@
                 async loadTasks() {
                     try {
                         const response = await axios.get('http://localhost:8000/api/tts/');
-                        this.tasks = response.data.slice(0, 20); // 只显示最近20个任务
+                        this.tasks = response.data.slice(0, 20);
                     } catch (error) {
                         console.error('Failed to load tasks:', error);
                     }
@@ -1371,17 +2058,27 @@
                     }
                 },
 
+                async loadSavedAudios() {
+                    console.log('loadSavedAudios called');
+                    try {
+                        const response = await axios.get('http://localhost:8000/api/saved-audios');
+                        console.log('loadSavedAudios response:', response.data);
+                        this.savedAudios = response.data.saved_audios || [];
+                        console.log('savedAudios set to:', this.savedAudios);
+                    } catch (error) {
+                        console.error('Failed to load saved audios:', error);
+                    }
+                },
+
                 startAutoRefresh() {
                     this.refreshInterval = setInterval(() => {
                         this.loadTasks();
-                    }, 5000); // 每5秒刷新一次
+                    }, 5000);
                 },
 
                 async viewTaskDetail(taskId) {
                     try {
-                        // 如果侧边栏已经打开，检查是否是同一个任务
                         if (this.showDetailPanel && this.currentTaskDetail && this.currentTaskDetail.task_id === taskId) {
-                            // 如果是同一个任务，关闭侧边栏
                             this.closeDetailPanel();
                             return;
                         }
@@ -1389,19 +2086,16 @@
                         const response = await axios.get(`http://localhost:8000/api/tts/${taskId}`);
                         const task = response.data;
 
-                        // 计算进度
                         let progress = 0;
                         if (task.total_chunks > 0) {
                             progress = task.processed_chunks / task.total_chunks;
                         }
 
-                        // 设置当前任务详情
                         this.currentTaskDetail = {
                             ...task,
                             progress: progress
                         };
 
-                        // 显示侧边栏
                         this.showDetailPanel = true;
 
                     } catch (error) {
@@ -1411,13 +2105,57 @@
                 },
 
                 closeDetailPanel() {
-                    // 隐藏侧边栏（Vue会自动处理遮罩层）
                     this.showDetailPanel = false;
-
-                    // 清空当前任务详情
                     setTimeout(() => {
                         this.currentTaskDetail = null;
                     }, 300);
+                },
+
+                showSaveDialog(taskId) {
+                    console.log('showSaveDialog called with taskId:', taskId);
+                    this.saveTaskId = taskId;
+                    this.saveAudioName = '';
+                    this.showSaveModal = true;
+                    console.log('showSaveModal set to true, modal should appear');
+                },
+
+                async saveAudio() {
+                    console.log('saveAudio called', { saveAudioName: this.saveAudioName, saveTaskId: this.saveTaskId });
+                    if (!this.saveAudioName.trim()) {
+                        this.showNotification('请输入音频名称', 'error');
+                        return;
+                    }
+
+                    try {
+                        console.log('Sending save request...', { task_id: this.saveTaskId, name: this.saveAudioName });
+                        await axios.post('http://localhost:8000/api/saved-audios', {
+                            task_id: this.saveTaskId,
+                            name: this.saveAudioName
+                        });
+
+                        this.showNotification('音频保存成功！', 'success');
+                        this.showSaveModal = false;
+                        this.saveAudioName = '';
+                        this.saveTaskId = null;
+                        console.log('Audio saved successfully, reloading saved audios...');
+                        await this.loadSavedAudios();
+                    } catch (error) {
+                        console.error('Failed to save audio:', error);
+                        this.showNotification('保存音频失败: ' + (error.response?.data?.detail || error.message), 'error');
+                    }
+                },
+
+                async deleteSavedAudio(audioId) {
+                    if (confirm('确定要删除这个音频吗？')) {
+                        try {
+                            await axios.delete(`http://localhost:8000/api/saved-audios/${audioId}`);
+                            this.showNotification('音频已删除', 'success');
+                            await this.loadSavedAudios();
+                        } catch (error) {
+                            this.showNotification('删除音频失败', 'error');
+                            console.error('Failed to delete saved audio:', error);
+                        }
+                    }
                 },
 
                 formatDateTime(dateString) {
@@ -1448,6 +2186,10 @@
                     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
                 },
 
+                getFullAudioUrl(audioUrl) {
+                    return audioUrl && (audioUrl.startsWith('http') ? audioUrl : `http://localhost:8000${audioUrl}`);
+                },
+
                 async cancelTask(taskId) {
                     try {
                         await axios.post(`http://localhost:8000/api/tts/${taskId}/cancel`);
@@ -1460,7 +2202,6 @@
                 },
 
                 playAudio(audioUrl) {
-                    // 构建完整的音频URL
                     const fullAudioUrl = audioUrl.startsWith('http') ? audioUrl : `http://localhost:8000${audioUrl}`;
 
                     if (this.currentAudio === fullAudioUrl) {
@@ -1470,16 +2211,42 @@
                     }
                 },
 
-                downloadAudio(audioUrl, taskId) {
-                    // 构建完整的音频URL
-                    const fullAudioUrl = audioUrl.startsWith('http') ? audioUrl : `http://localhost:8000${audioUrl}`;
+                async downloadAudio(audioUrl, filename) {
+                    console.log('downloadAudio called with:', { audioUrl, filename });
+                    // Use the current host for API calls
+                    const apiHost = window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host;
+                    const protocol = window.location.protocol;
+                    const fullAudioUrl = audioUrl.startsWith('http') ? audioUrl : `${protocol}//${apiHost}${audioUrl}`;
+                    console.log('Full audio URL:', fullAudioUrl);
 
-                    const link = document.createElement('a');
-                    link.href = fullAudioUrl;
-                    link.download = `tts_${taskId}.mp3`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+                    try {
+                        // Fetch the audio file as a blob to force download
+                        const response = await fetch(fullAudioUrl);
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch audio file');
+                        }
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `${filename}.mp3`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(url);
+                        console.log('Download completed');
+                    } catch (error) {
+                        console.error('Download failed:', error);
+                        // Fallback to simple link method
+                        const link = document.createElement('a');
+                        link.href = fullAudioUrl;
+                        link.target = '_blank';
+                        link.download = `${filename}.mp3`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
                 },
 
                 async deleteTask(taskId) {

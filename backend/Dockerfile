@@ -8,7 +8,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install uv
-RUN pip install uv
+RUN pip install uv -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 # Set working directory
 WORKDIR /app
@@ -17,7 +17,7 @@ WORKDIR /app
 COPY pyproject.toml ./
 
 # Install dependencies
-RUN uv pip install --system -e .
+RUN UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple uv pip install --system -e .
 
 # Copy application code
 COPY . .
