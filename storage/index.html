@@ -1590,11 +1590,6 @@
 
                 <!-- 保存的音频页面 -->
                 <div v-show="activeTab === 'saved'" class="content-panel">
-                        <!-- 调试信息 -->
-                        <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 4px;">
-                            <strong>调试信息:</strong> activeTab = '{{ activeTab }}', savedAudios.length = {{ savedAudios ? savedAudios.length : 0 }}
-                        </div>
-
                         <div class="panel-header">
                             <h2 class="panel-title">💾 保存的音频</h2>
                             <button class="btn-secondary" @click="loadSavedAudios">
@@ -1845,11 +1840,6 @@
                     return this.tasks.length > 0 && this.selectedTasks.length === this.tasks.length;
                 }
             },
-            watch: {
-                showSaveModal(newVal) {
-                    console.log('showSaveModal changed to:', newVal);
-                }
-            },
             methods: {
                 toggleTaskSelection(taskId) {
                     const index = this.selectedTasks.indexOf(taskId);
@@ -2059,12 +2049,9 @@
                 },
 
                 async loadSavedAudios() {
-                    console.log('loadSavedAudios called');
                     try {
                         const response = await axios.get('http://localhost:8000/api/saved-audios');
-                        console.log('loadSavedAudios response:', response.data);
                         this.savedAudios = response.data.saved_audios || [];
-                        console.log('savedAudios set to:', this.savedAudios);
                     } catch (error) {
                         console.error('Failed to load saved audios:', error);
                     }
@@ -2112,22 +2099,18 @@
                 },
 
                 showSaveDialog(taskId) {
-                    console.log('showSaveDialog called with taskId:', taskId);
                     this.saveTaskId = taskId;
                     this.saveAudioName = '';
                     this.showSaveModal = true;
-                    console.log('showSaveModal set to true, modal should appear');
                 },
 
                 async saveAudio() {
-                    console.log('saveAudio called', { saveAudioName: this.saveAudioName, saveTaskId: this.saveTaskId });
                     if (!this.saveAudioName.trim()) {
                         this.showNotification('请输入音频名称', 'error');
                         return;
                     }
 
                     try {
-                        console.log('Sending save request...', { task_id: this.saveTaskId, name: this.saveAudioName });
                         await axios.post('http://localhost:8000/api/saved-audios', {
                             task_id: this.saveTaskId,
                             name: this.saveAudioName
@@ -2137,10 +2120,8 @@
                         this.showSaveModal = false;
                         this.saveAudioName = '';
                         this.saveTaskId = null;
-                        console.log('Audio saved successfully, reloading saved audios...');
                         await this.loadSavedAudios();
                     } catch (error) {
-                        console.error('Failed to save audio:', error);
                         this.showNotification('保存音频失败: ' + (error.response?.data?.detail || error.message), 'error');
                     }
                 },
@@ -2212,12 +2193,10 @@
                 },
 
                 async downloadAudio(audioUrl, filename) {
-                    console.log('downloadAudio called with:', { audioUrl, filename });
                     // Use the current host for API calls
                     const apiHost = window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host;
                     const protocol = window.location.protocol;
                     const fullAudioUrl = audioUrl.startsWith('http') ? audioUrl : `${protocol}//${apiHost}${audioUrl}`;
-                    console.log('Full audio URL:', fullAudioUrl);
 
                     try {
                         // Fetch the audio file as a blob to force download
@@ -2235,7 +2214,6 @@
                         link.click();
                         document.body.removeChild(link);
                         window.URL.revokeObjectURL(url);
-                        console.log('Download completed');
                     } catch (error) {
                         console.error('Download failed:', error);
                         // Fallback to simple link method
