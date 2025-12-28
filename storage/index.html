@@ -195,7 +195,7 @@
 
         .task-list-header {
             display: grid;
-            grid-template-columns: 40px 100px 80px 1fr 300px;
+            grid-template-columns: 40px 100px 80px 1fr 80px 600px;
             gap: 12px;
             padding: 10px 16px;
             background: #fafafa;
@@ -213,7 +213,7 @@
 
         .saved-audio-list {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
             gap: 16px;
         }
 
@@ -261,8 +261,11 @@
 
         .audio-card-actions {
             display: flex;
-            gap: 8px;
+            gap: 4px;
             margin-top: 12px;
+            flex-wrap: nowrap;
+            justify-content: flex-start;
+            align-items: center;
         }
 
         .audio-card-player {
@@ -386,6 +389,7 @@
             cursor: pointer;
             transition: all 0.2s ease;
             background: var(--white);
+            min-width: 280px;
         }
 
         .preset-card:hover {
@@ -402,8 +406,11 @@
 
         .preset-name {
             font-weight: 600;
-            font-size: 16px;
-            margin-bottom: 4px;
+            font-size: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .preset-description {
@@ -413,16 +420,106 @@
         }
 
         .preset-details {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 10px;
             font-size: 12px;
         }
 
-        .detail-item {
+        .detail-row {
             display: flex;
-            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+
+        .detail-item {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .detail-label {
+            opacity: 0.7;
+            font-weight: 500;
+            min-width: 35px;
+        }
+
+        .detail-value {
+            font-weight: 600;
+        }
+
+        .detail-icon {
+            font-size: 14px;
+        }
+
+        .preset-detail-panel {
+            margin-top: 16px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+        }
+
+        .preset-detail-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .preset-detail-icon {
+            font-size: 24px;
+        }
+
+        .preset-detail-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .preset-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .preset-detail-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: var(--white);
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .preset-detail-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .preset-detail-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .preset-detail-label {
+            font-size: 12px;
+            color: var(--text-color-secondary);
+            font-weight: 500;
+        }
+
+        .preset-detail-value {
+            font-size: 14px;
+            color: var(--text-color);
+            font-weight: 600;
         }
 
         .advanced-settings {
@@ -469,7 +566,7 @@
 
         .task-item {
             display: grid;
-            grid-template-columns: 40px 100px 80px 1fr 300px;
+            grid-template-columns: 40px 100px 80px 1fr 80px 600px;
             gap: 12px;
             padding: 10px 16px;
             background: var(--white);
@@ -663,8 +760,9 @@
         .task-actions {
             display: flex;
             gap: 4px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             justify-content: flex-end;
+            align-items: center;
         }
 
         @media (max-width: 768px) {
@@ -674,20 +772,22 @@
         }
 
         .mini-btn {
-            padding: 4px 8px;
+            padding: 2px 4px;
             border: 1px solid var(--border-color);
             border-radius: 4px;
             background: var(--white);
-            min-width: 32px;
-            height: 32px;
+            width: 30px;
+            height: 30px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             color: var(--text-color);
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             text-decoration: none;
             transition: all 0.15s ease;
+            flex-shrink: 0;
+            white-space: nowrap;
         }
 
         .mini-btn:hover {
@@ -1152,6 +1252,15 @@
                             <span class="menu-icon">💾</span>
                             <span class="menu-text">保存的音频</span>
                         </li>
+                        <li
+                            class="menu-item"
+                            :class="{ active: activeTab === 'ai-config' }"
+                            @click="activeTab = 'ai-config'"
+                            :title="sidebarCollapsed ? 'AI配置' : ''"
+                        >
+                            <span class="menu-icon">🤖</span>
+                            <span class="menu-text">AI配置</span>
+                        </li>
                     </ul>
                 </div>
 
@@ -1185,29 +1294,64 @@
                                         <!-- 预设选择 -->
                                         <div class="form-group">
                                             <label class="form-label">🎯 选择语音风格预设</label>
-                                            <div class="preset-buttons">
-                                                <div v-for="preset in ssmlPresets"
-                                                     :key="preset.name"
-                                                     class="preset-card"
-                                                     :class="{selected: selectedPreset === preset.name}"
-                                                     @click="selectPreset(preset.name)">
-                                                    <div class="preset-name">{{ preset.description }}</div>
-                                                    <div class="preset-details">
-                                                        <div class="detail-item">
-                                                            <span>语音:</span>
-                                                            <span>{{ preset.voice }}</span>
+                                            <select
+                                                v-model="selectedPreset"
+                                                @change="onPresetChange"
+                                                class="ant-input">
+                                                <option v-for="preset in ssmlPresets"
+                                                        :key="preset.name"
+                                                        :value="preset.name">
+                                                    {{ preset.description }}
+                                                </option>
+                                            </select>
+
+                                            <!-- 预设详情 -->
+                                            <div v-if="selectedPreset && ssmlPresets[selectedPreset]" class="preset-detail-panel">
+                                                <div class="preset-detail-header">
+                                                    <span class="preset-detail-icon">🎙️</span>
+                                                    <span class="preset-detail-title">{{ ssmlPresets[selectedPreset].description }}</span>
+                                                </div>
+                                                <div class="preset-detail-grid">
+                                                    <div class="preset-detail-item">
+                                                        <span class="preset-detail-icon">🗣️</span>
+                                                        <div class="preset-detail-content">
+                                                            <div class="preset-detail-label">语音</div>
+                                                            <div class="preset-detail-value">{{ ssmlPresets[selectedPreset].voice }}</div>
                                                         </div>
-                                                        <div class="detail-item">
-                                                            <span>语速:</span>
-                                                            <span>{{ preset.rate }}</span>
+                                                    </div>
+                                                    <div class="preset-detail-item">
+                                                        <span class="preset-detail-icon">⚡</span>
+                                                        <div class="preset-detail-content">
+                                                            <div class="preset-detail-label">语速</div>
+                                                            <div class="preset-detail-value">{{ ssmlPresets[selectedPreset].rate }}</div>
                                                         </div>
-                                                        <div class="detail-item">
-                                                            <span>音调:</span>
-                                                            <span>{{ preset.pitch }}</span>
+                                                    </div>
+                                                    <div class="preset-detail-item">
+                                                        <span class="preset-detail-icon">🎵</span>
+                                                        <div class="preset-detail-content">
+                                                            <div class="preset-detail-label">音调</div>
+                                                            <div class="preset-detail-value">{{ ssmlPresets[selectedPreset].pitch }}</div>
                                                         </div>
-                                                        <div class="detail-item">
-                                                            <span>停顿:</span>
-                                                            <span>{{ preset.comma_pause }} / {{ preset.sentence_pause }}</span>
+                                                    </div>
+                                                    <div class="preset-detail-item">
+                                                        <span class="preset-detail-icon">⏸️</span>
+                                                        <div class="preset-detail-content">
+                                                            <div class="preset-detail-label">逗号停顿</div>
+                                                            <div class="preset-detail-value">{{ ssmlPresets[selectedPreset].comma_pause }}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="preset-detail-item">
+                                                        <span class="preset-detail-icon">💭</span>
+                                                        <div class="preset-detail-content">
+                                                            <div class="preset-detail-label">句子停顿</div>
+                                                            <div class="preset-detail-value">{{ ssmlPresets[selectedPreset].sentence_pause }}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="preset-detail-item">
+                                                        <span class="preset-detail-icon">📖</span>
+                                                        <div class="preset-detail-content">
+                                                            <div class="preset-detail-label">段落停顿</div>
+                                                            <div class="preset-detail-value">{{ ssmlPresets[selectedPreset].paragraph_pause || '1200ms' }}</div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1315,8 +1459,123 @@
                                             </div>
                                         </div>
 
+                                        <!-- AI对话分析 -->
+                                        <div class="form-group" v-if="text && text.length > 100">
+                                            <div style="border: 1px solid #d9d9d9; border-radius: 6px; padding: 16px; background: #fafafa;">
+                                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                                    <div style="font-weight: 600; font-size: 14px;">
+                                                        🤖 AI对话分析（多角色配音）
+                                                    </div>
+                                                    <button
+                                                        v-if="!analysisResult"
+                                                        class="btn-secondary"
+                                                        @click="analyzeText"
+                                                        :disabled="analyzing || !hasAIConfig"
+                                                        style="font-size: 13px; padding: 6px 12px;"
+                                                    >
+                                                        {{ analyzing ? '分析中...' : '🔍 开始分析' }}
+                                                    </button>
+                                                    <button
+                                                        v-else
+                                                        class="btn-secondary"
+                                                        @click="analysisResult = null"
+                                                        style="font-size: 13px; padding: 6px 12px;"
+                                                    >
+                                                        🔄 重新分析
+                                                    </button>
+                                                </div>
+
+                                                <div v-if="!hasAIConfig" style="color: #ff4d4f; font-size: 12px; margin-bottom: 8px;">
+                                                    ⚠️ 请先在"AI配置"页面添加AI服务配置
+                                                </div>
+
+                                                <!-- 分析进度 -->
+                                                <div v-if="analyzing" style="background: #e6f7ff; border: 1px solid #91d5ff; border-radius: 4px; padding: 12px; margin-bottom: 12px;">
+                                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                                        <span class="loading-spinner" style="width: 16px; height: 16px;"></span>
+                                                        <span style="color: #1890ff; font-size: 13px;">{{ analysisProgress }}</span>
+                                                    </div>
+                                                </div>
+
+                                                <!-- 分析结果 -->
+                                                <div v-if="analysisResult && analysisResult.status === 'completed'" style="background: #fff; border: 1px solid #d9d9d9; border-radius: 4px; padding: 12px;">
+                                                    <!-- 角色列表 -->
+                                                    <div style="margin-bottom: 16px;">
+                                                        <div style="font-weight: 600; font-size: 13px; margin-bottom: 8px;">📖 检测到的角色 ({{ Object.keys(analysisResult.characters || {}).length }}个)</div>
+                                                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                                            <div
+                                                                v-for="(char, name) in analysisResult.characters"
+                                                                :key="name"
+                                                                style="background: #f0f0f0; border-radius: 4px; padding: 6px 10px; font-size: 12px; display: flex; align-items: center; gap: 6px;"
+                                                            >
+                                                                <span>{{ name }}</span>
+                                                                <span style="color: #8c8c8c;">({{ char.dialog_count }}句)</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- 为角色分配声音 -->
+                                                    <div style="margin-bottom: 16px;">
+                                                        <div style="font-weight: 600; font-size: 13px; margin-bottom: 8px;">🎙️ 为角色分配声音（已自动分配）</div>
+                                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                                            <div
+                                                                v-for="(char, name) in analysisResult.characters"
+                                                                :key="name"
+                                                                style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f9f9f9; border-radius: 4px; border-left: 3px solid #1890ff;"
+                                                            >
+                                                                <span style="font-size: 12px; min-width: 60px;">{{ name }}</span>
+                                                                <span style="font-size: 11px; color: #666; background: #e6f7ff; padding: 2px 6px; border-radius: 3px;">
+                                                                    {{ detectGender(name) === 'male' ? '👨 男' : '👩 女' }}
+                                                                </span>
+                                                                <select
+                                                                    v-model="characterVoices[name]"
+                                                                    class="ant-input"
+                                                                    style="flex: 1; font-size: 12px; padding: 4px 8px;"
+                                                                >
+                                                                    <option value="">选择声音</option>
+                                                                    <option v-for="voice in availableVoices" :key="voice" :value="voice">{{ voice }}</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <div style="font-size: 11px; color: #999; margin-top: 6px;">
+                                                            💡 旁白将使用: {{ ssmlConfig.voice || 'zh-CN-XiaoxiaoNeural' }}
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- 片段统计 -->
+                                                    <div style="font-size: 12px; color: #8c8c8c; padding-top: 8px; border-top: 1px solid #f0f0f0;">
+                                                        <div>识别到 {{ analysisResult.segments?.filter(s => s.type === 'dialog').length || 0 }} 句对话</div>
+                                                        <div>识别到 {{ analysisResult.segments?.filter(s => s.type === 'narration').length || 0 }} 段旁白</div>
+                                                        <div v-if="analysisResult.analysis_metadata">
+                                                            处理时间: {{ (analysisResult.analysis_metadata.processing_time || 0).toFixed(2) }}秒
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- 生成按钮 -->
+                                                    <button
+                                                        class="btn-primary"
+                                                        @click="createMultiVoiceTask"
+                                                        :disabled="!allCharactersAssigned || creating"
+                                                        style="margin-top: 12px; width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"
+                                                    >
+                                                        {{ creating ? '生成中...' : '🚀 生成多角色语音' }}
+                                                    </button>
+                                                    <div v-if="!allCharactersAssigned" style="color: #ff4d4f; font-size: 12px; margin-top: 8px; text-align: center;">
+                                                        ⚠️ 请为所有角色分配声音
+                                                    </div>
+                                                </div>
+
+                                                <!-- 分析失败 -->
+                                                <div v-if="analysisResult && analysisResult.status === 'failed'" style="background: #fff2f0; border: 1px solid #ffccc7; border-radius: 4px; padding: 12px;">
+                                                    <div style="color: #ff4d4f; font-size: 13px;">
+                                                        ❌ 分析失败: {{ analysisResult.error || '未知错误' }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <!-- SSML 预览 -->
-                                        <div class="form-group" v-if="text && selectedPreset">
+                                        <div class="form-group" v-if="text && selectedPreset && !analysisResult">
                                             <button class="btn-secondary" @click="previewSSML">
                                                 👁️ 预览 SSML
                                             </button>
@@ -1646,6 +1905,154 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- AI配置页面 -->
+                <div v-show="activeTab === 'ai-config'" class="content-panel">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2 class="panel-title">🤖 AI对话分析配置</h2>
+                            <button class="btn-secondary" @click="loadAIConfigs">
+                                🔄 刷新
+                            </button>
+                        </div>
+
+                        <div class="panel-body">
+                            <!-- 隐私警告 -->
+                            <div style="background: #fff7e6; border: 1px solid #ffd591; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
+                                <div style="display: flex; align-items: start; gap: 12px;">
+                                    <span style="font-size: 24px;">⚠️</span>
+                                    <div>
+                                        <div style="font-weight: 600; color: #d46b08; margin-bottom: 8px;">隐私提示</div>
+                                        <div style="color: #d46b08; font-size: 14px; line-height: 1.6;">
+                                            AI对话分析功能需要将您的文本发送到第三方AI服务商（GLM、Kimi、DeepSeek）。
+                                            这些服务可能会收集和使用您的数据。请勿发送敏感或私密信息。
+                                            您需要自己提供API密钥，密钥将安全存储在本地数据库中。
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 添加新配置 -->
+                            <div style="background: #fafafa; border: 1px solid #d9d9d9; border-radius: 6px; padding: 20px; margin-bottom: 24px;">
+                                <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600;">➕ 添加AI配置</h3>
+
+                                <div class="form-group" style="margin-bottom: 16px;">
+                                    <label class="form-label">AI服务商</label>
+                                    <select v-model="newAIConfig.provider" @change="onProviderChange" class="ant-input">
+                                        <option value="">-- 请选择 --</option>
+                                        <option v-for="provider in availableProviders" :key="provider.id" :value="provider.id">
+                                            {{ provider.name }}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 16px;">
+                                    <label class="form-label">模型</label>
+                                    <select v-model="newAIConfig.model" class="ant-input" :disabled="!newAIConfig.provider">
+                                        <option value="">-- 请先选择服务商 --</option>
+                                        <option v-for="model in currentProviderModels" :key="model.id" :value="model.id">
+                                            {{ model.name }} - {{ model.description }}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 16px;">
+                                    <label class="form-label">API密钥</label>
+                                    <input
+                                        v-model="newAIConfig.api_key"
+                                        type="password"
+                                        class="ant-input"
+                                        placeholder="请输入API密钥"
+                                        :disabled="!newAIConfig.provider"
+                                    >
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 16px;">
+                                    <label class="form-label">自定义API Endpoint (可选)</label>
+                                    <input
+                                        v-model="newAIConfig.base_url"
+                                        type="text"
+                                        class="ant-input"
+                                        placeholder="留空使用默认Endpoint"
+                                    >
+                                </div>
+
+                                <div style="display: flex; gap: 12px; margin-top: 20px;">
+                                    <button
+                                        class="btn-secondary"
+                                        @click="testAIConnection"
+                                        :disabled="!newAIConfig.provider || !newAIConfig.api_key || testing"
+                                    >
+                                        {{ testing ? '测试中...' : '🧪 测试连接' }}
+                                    </button>
+                                    <button
+                                        class="btn-primary"
+                                        @click="saveAIConfig"
+                                        :disabled="!newAIConfig.provider || !newAIConfig.api_key || !newAIConfig.model || saving"
+                                    >
+                                        {{ saving ? '保存中...' : '💾 保存配置' }}
+                                    </button>
+                                </div>
+
+                                <div v-if="testResult" style="margin-top: 12px; padding: 12px; border-radius: 4px;" :style="{
+                                    background: testResult.success ? '#f6ffed' : '#fff2f0',
+                                    border: '1px solid ' + (testResult.success ? '#b7eb8f' : '#ffccc7'),
+                                    color: testResult.success ? '#52c41a' : '#ff4d4f'
+                                }">
+                                    {{ testResult.message }}
+                                </div>
+                            </div>
+
+                            <!-- 已保存的配置列表 -->
+                            <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600;">📋 已保存的配置</h3>
+
+                            <div v-if="aiConfigs.length === 0" class="empty-state">
+                                <div class="empty-icon">🔧</div>
+                                <div class="empty-text">暂无AI配置</div>
+                                <div class="empty-subtext">请在上方面板添加AI服务配置</div>
+                            </div>
+
+                            <div v-else>
+                                <div v-for="config in aiConfigs" :key="config.id" style="background: #fff; border: 1px solid #d9d9d9; border-radius: 6px; padding: 16px; margin-bottom: 12px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                        <div>
+                                            <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">
+                                                {{ getProviderName(config.provider) }}
+                                                <span v-if="config.is_default" style="background: #52c41a; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 8px;">默认</span>
+                                            </div>
+                                            <div style="color: #8c8c8c; font-size: 13px;">模型: {{ config.model }}</div>
+                                        </div>
+                                        <div style="display: flex; gap: 8px;">
+                                            <button
+                                                v-if="!config.is_default"
+                                                class="mini-btn"
+                                                @click="setDefaultConfig(config.id)"
+                                                title="设为默认"
+                                                style="color: var(--primary-color);"
+                                            >
+                                                ⭐
+                                            </button>
+                                            <button
+                                                class="mini-btn"
+                                                @click="deleteAIConfig(config.id)"
+                                                title="删除"
+                                                style="color: #dc3545; border-color: #dc3545;"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div style="font-size: 13px; color: #8c8c8c;">
+                                        <div v-if="config.last_tested">最后测试: {{ formatDateTime(config.last_tested) }}</div>
+                                        <div v-if="config.test_status">
+                                            状态: <span :style="{ color: config.test_status === 'success' ? '#52c41a' : '#ff4d4f' }">{{ config.test_status === 'success' ? '✓ 连接成功' : '✗ 连接失败' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- 任务详情侧边栏 -->
@@ -1863,23 +2270,57 @@
                     previewTextData: {
                         text: '',
                         title: ''
-                    }
+                    },
+                    // AI配置相关
+                    availableProviders: [],
+                    aiConfigs: [],
+                    newAIConfig: {
+                        provider: '',
+                        model: '',
+                        api_key: '',
+                        base_url: ''
+                    },
+                    testing: false,
+                    saving: false,
+                    testResult: null,
+                    // AI分析相关
+                    analysisResult: null,
+                    analyzing: false,
+                    analysisProgress: '',
+                    characterVoices: {},
+                    // 按性别分类的声音池
+                    voicePools: {
+                        narration: ['zh-CN-XiaoxiaoNeural', 'zh-CN-XiaoyiNeural', 'zh-CN-XiaohanNeural'],  // 旁白用女声（中性）
+                        male: ['zh-CN-YunxiNeural', 'zh-CN-YunjianNeural', 'zh-CN-YunyangNeural',
+                               'zh-CN-YunzeNeural', 'zh-CN-YunxiaNeural', 'zh-CN-YunfengNeural',
+                               'zh-CN-YunhaoNeural', 'zh-CN-YunjingNeural', 'zh-CN-YunyiNeural'],
+                        female: ['zh-CN-XiaoxiaoNeural', 'zh-CN-XiaoyiNeural', 'zh-CN-XiaohanNeural',
+                                'zh-CN-XiaomengNeural', 'zh-CN-XiaomoNeural', 'zh-CN-XiaoqiuNeural',
+                                'zh-CN-XiaoruiNeural', 'zh-CN-XiaoshuangNeural', 'zh-CN-XiaoyaNeural',
+                                'zh-CN-XiaoyanNeural', 'zh-CN-XiaochenNeural', 'zh-CN-YangNeural']
+                    },
+                    availableVoices: [
+                        'zh-CN-XiaoxiaoNeural', 'zh-CN-YunxiNeural', 'zh-CN-YunjianNeural',
+                        'zh-CN-XiaoyiNeural', 'zh-CN-YunyangNeural', 'zh-CN-XiaochenNeural',
+                        'zh-CN-XiaohanNeural', 'zh-CN-XiaomengNeural', 'zh-CN-XiaomoNeural',
+                        'zh-CN-XiaoqiuNeural', 'zh-CN-XiaoruiNeural', 'zh-CN-XiaoshuangNeural',
+                        'zh-CN-XiaoyaNeural', 'zh-CN-XiaoyanNeural', 'zh-CN-YangNeural',
+                        'zh-CN-YunzeNeural', 'zh-CN-YunxiaNeural', 'zh-CN-YunfengNeural',
+                        'zh-CN-YunhaoNeural', 'zh-CN-YunjingNeural', 'zh-CN-YunyiNeural'
+                    ]
                 };
             },
             mounted() {
                 this.loadSSMLPresets();
                 this.loadTasks();
                 this.loadSavedAudios();
+                this.loadAIProviders();
+                this.loadAIConfigs();
                 this.startAutoRefresh();
             },
             beforeUnmount() {
                 if (this.refreshInterval) {
                     clearInterval(this.refreshInterval);
-                }
-            },
-            computed: {
-                isAllSelected() {
-                    return this.tasks.length > 0 && this.selectedTasks.length === this.tasks.length;
                 }
             },
             methods: {
@@ -1976,6 +2417,10 @@
                         this.showNotification('加载预设配置失败', 'error');
                         console.error('Failed to load SSML presets:', error);
                     }
+                },
+
+                onPresetChange() {
+                    this.selectPreset(this.selectedPreset);
                 },
 
                 selectPreset(presetName) {
@@ -2330,6 +2775,401 @@
                     setTimeout(() => {
                         notification.remove();
                     }, 3000);
+                },
+
+                // AI配置相关方法
+                async loadAIProviders() {
+                    try {
+                        const response = await axios.get('http://localhost:8000/api/ai-analysis/providers');
+                        this.availableProviders = response.data.providers;
+                    } catch (error) {
+                        console.error('Failed to load AI providers:', error);
+                        this.showNotification('加载AI服务商列表失败', 'error');
+                    }
+                },
+
+                async loadAIConfigs() {
+                    try {
+                        const response = await axios.get('http://localhost:8000/api/ai-analysis/config');
+                        this.aiConfigs = response.data.configs || [];
+                    } catch (error) {
+                        console.error('Failed to load AI configs:', error);
+                        this.showNotification('加载AI配置失败', 'error');
+                    }
+                },
+
+                onProviderChange() {
+                    // Reset model when provider changes
+                    this.newAIConfig.model = '';
+                    this.testResult = null;
+                },
+
+                getProviderName(providerId) {
+                    const provider = this.availableProviders.find(p => p.id === providerId);
+                    return provider ? provider.name : providerId;
+                },
+
+                async testAIConnection() {
+                    console.log('testAIConnection called');
+                    console.log('newAIConfig:', this.newAIConfig);
+
+                    if (!this.newAIConfig || !this.newAIConfig.provider) {
+                        this.showNotification('请先选择AI服务商', 'warning');
+                        return;
+                    }
+                    if (!this.newAIConfig.api_key) {
+                        this.showNotification('请输入API密钥', 'warning');
+                        return;
+                    }
+
+                    this.testing = true;
+                    this.testResult = null;
+
+                    try {
+                        console.log('Sending test request...');
+                        // 处理base_url：trim空格，空字符串转为null
+                        const baseUrl = this.newAIConfig.base_url ? this.newAIConfig.base_url.trim() : null;
+                        const finalBaseUrl = (baseUrl === '') ? null : baseUrl;
+
+                        const response = await axios.post('http://localhost:8000/api/ai-analysis/test-connection', {
+                            provider: this.newAIConfig.provider,
+                            api_key: this.newAIConfig.api_key,
+                            model: this.newAIConfig.model || 'temp',
+                            base_url: finalBaseUrl
+                        });
+
+                        console.log('Response:', response.data);
+                        this.testResult = response.data;
+                        this.showNotification(this.testResult.success ? '连接测试成功' : '连接测试失败', this.testResult.success ? 'success' : 'error');
+                    } catch (error) {
+                        console.error('Test connection error:', error);
+                        this.testResult = {
+                            success: false,
+                            message: '测试请求失败: ' + (error.response?.data?.detail || error.message)
+                        };
+                        this.showNotification('连接测试失败', 'error');
+                    } finally {
+                        this.testing = false;
+                    }
+                },
+
+                async saveAIConfig() {
+                    this.saving = true;
+
+                    try {
+                        // 处理base_url：trim空格，空字符串转为null
+                        const baseUrl = this.newAIConfig.base_url ? this.newAIConfig.base_url.trim() : null;
+                        const finalBaseUrl = (baseUrl === '') ? null : baseUrl;
+
+                        await axios.post('http://localhost:8000/api/ai-analysis/config', {
+                            provider: this.newAIConfig.provider,
+                            api_key: this.newAIConfig.api_key,
+                            model: this.newAIConfig.model,
+                            base_url: finalBaseUrl,
+                            temperature: '0.7',
+                            max_tokens: 4096
+                        });
+
+                        this.showNotification('AI配置已保存', 'success');
+
+                        // Reset form
+                        this.newAIConfig = {
+                            provider: '',
+                            model: '',
+                            api_key: '',
+                            base_url: ''
+                        };
+                        this.testResult = null;
+
+                        // Reload configs
+                        await this.loadAIConfigs();
+                    } catch (error) {
+                        console.error('Failed to save AI config:', error);
+                        this.showNotification('保存AI配置失败: ' + (error.response?.data?.detail || error.message), 'error');
+                    } finally {
+                        this.saving = false;
+                    }
+                },
+
+                async deleteAIConfig(configId) {
+                    if (!confirm('确定要删除这个AI配置吗？')) return;
+
+                    try {
+                        await axios.delete(`http://localhost:8000/api/ai-analysis/config/${configId}`);
+                        this.showNotification('AI配置已删除', 'success');
+                        await this.loadAIConfigs();
+                    } catch (error) {
+                        console.error('Failed to delete AI config:', error);
+                        this.showNotification('删除AI配置失败', 'error');
+                    }
+                },
+
+                async setDefaultConfig(configId) {
+                    try {
+                        // This would require an update endpoint, for now just reload
+                        this.showNotification('设为默认功能开发中', 'info');
+                    } catch (error) {
+                        console.error('Failed to set default config:', error);
+                        this.showNotification('设置默认配置失败', 'error');
+                    }
+                },
+
+                // AI分析相关方法
+                detectGender(name) {
+                    // 根据名字检测性别（简单规则）
+                    const maleChars = '伟刚勇毅俊峰强军平保东文辉力明永健世广志义兴良海山仁波宁贵福生龙元全国胜学祥才发武新利清飞彬富顺信子杰涛昌成康星光天达安岩中茂进林有坚和彪博诚先敬震振壮会思群豪心邦承乐绍功松善厚庆磊民友裕河哲江超浩亮政谦亨奇固之轮翰朗伯宏言若鸣朋斌梁栋维启克伦翔旭鹏泽晨辰士以建家致树炎德行时泰盛雄琛钧冠策腾楠榕风航弘';
+                    const femaleChars = '秀娟英华慧巧美娜静淑惠珠翠雅芝玉萍红娥玲芬芳燕彩春菊兰凤洁梅琳素云莲真环雪荣爱妹霞香月莺媛艳瑞凡佳嘉琼勤珍贞莉桂娣叶璧璐娅琦晶妍茜秋珊莎锦黛青倩婷姣婉娴瑾颖露瑶怡婵雁蓓纨仪荷丹蓉眉君琴蕊薇菁梦岚苑婕馨瑗琰韵融园艺咏卿聪澜纯毓悦昭冰爽琬茗羽希宁欣飘育滢馥筠柔竹霭凝晓欢霄枫芸菲寒伊亚宜可姬舒影荔枝思丽';
+
+                    const lastChar = name.slice(-1);
+
+                    if (maleChars.includes(lastChar)) return 'male';
+                    if (femaleChars.includes(lastChar)) return 'female';
+
+                    // 如果无法判断，使用启发式规则
+                    if (name.includes('先生') || name.includes('爸爸') || name.includes('爷爷') || name.includes('伯') || name.includes('叔') || name.includes('哥') || name.includes('弟')) {
+                        return 'male';
+                    }
+                    if (name.includes('女士') || name.includes('小姐') || name.includes('妈妈') || name.includes('奶奶') || name.includes('姨') || name.includes('姐') || name.includes('妹')) {
+                        return 'female';
+                    }
+
+                    // 默认返回女性（更常见的旁白声音）
+                    return 'female';
+                },
+
+                autoAssignVoices(characters) {
+                    // 自动为角色分配声音
+                    const assignment = {};
+                    const usedVoices = new Set();
+
+                    // 旁白声音（确保与角色不同）
+                    let narrationVoice = this.voicePools.narration[0];
+                    // 如果旁白声音已被占用，尝试其他旁白声音
+                    if (usedVoices.has(narrationVoice)) {
+                        narrationVoice = this.voicePools.narration.find(v => !usedVoices.has(v)) || narrationVoice;
+                    }
+                    assignment['_narration'] = narrationVoice;
+                    usedVoices.add(narrationVoice);
+
+                    // 按性别分组角色
+                    const maleChars = [];
+                    const femaleChars = [];
+
+                    characters.forEach(char => {
+                        const gender = this.detectGender(char);
+                        if (gender === 'male') {
+                            maleChars.push(char);
+                        } else {
+                            femaleChars.push(char);
+                        }
+                    });
+
+                    // 为男性角色分配男声
+                    maleChars.forEach((char, index) => {
+                        // 从男声池中选择未使用的声音
+                        const availableVoices = this.voicePools.male.filter(v => !usedVoices.has(v));
+                        if (availableVoices.length > 0) {
+                            const voice = availableVoices[index % availableVoices.length];
+                            assignment[char] = voice;
+                            usedVoices.add(voice);
+                        } else {
+                            // 如果没有可用男声，使用其他声音
+                            const voice = this.voicePools.male[index % this.voicePools.male.length];
+                            assignment[char] = voice;
+                        }
+                    });
+
+                    // 为女性角色分配女声（避免使用旁白声音）
+                    femaleChars.forEach((char, index) => {
+                        // 从女声池中选择未使用且不是旁白的声音
+                        const availableVoices = this.voicePools.female.filter(v => !usedVoices.has(v));
+                        if (availableVoices.length > 0) {
+                            const voice = availableVoices[index % availableVoices.length];
+                            assignment[char] = voice;
+                            usedVoices.add(voice);
+                        } else {
+                            // 如果没有可用女声，使用其他声音
+                            const voice = this.voicePools.female[index % this.voicePools.female.length];
+                            assignment[char] = voice;
+                        }
+                    });
+
+                    return assignment;
+                },
+
+                async analyzeText() {
+                    if (!this.text || this.text.trim().length < 100) {
+                        this.showNotification('请输入至少100字的文本', 'warning');
+                        return;
+                    }
+
+                    this.analyzing = true;
+                    this.analysisProgress = '正在分析文本...';
+                    this.analysisResult = null;
+
+                    try {
+                        const response = await axios.post('http://localhost:8000/api/ai-analysis/analyze', {
+                            text: this.text,
+                            enable_dialog_analysis: true,
+                            enable_character_extraction: true
+                        });
+
+                        this.analysisResult = response.data;
+
+                        if (response.data.status === 'completed') {
+                            const characters = Object.keys(response.data.characters || {});
+                            this.analysisProgress = `分析完成！识别到 ${characters.length} 个角色`;
+
+                            // 智能自动分配声音
+                            this.characterVoices = this.autoAssignVoices(characters);
+
+                            // 记录分配信息到控制台
+                            console.log('✨ 自动声音分配:');
+                            Object.entries(this.characterVoices).forEach(([char, voice]) => {
+                                const gender = this.detectGender(char);
+                                console.log(`  ${char} (${gender}): ${voice}`);
+                            });
+
+                            this.showNotification('AI分析完成，已自动分配角色声音', 'success');
+                        } else {
+                            this.showNotification('分析失败: ' + (response.data.error || '未知错误'), 'error');
+                        }
+                    } catch (error) {
+                        console.error('Failed to analyze text:', error);
+                        this.analysisResult = {
+                            status: 'failed',
+                            error: error.response?.data?.detail || error.message
+                        };
+                        this.showNotification('AI分析失败', 'error');
+                    } finally {
+                        this.analyzing = false;
+                    }
+                },
+
+                async createMultiVoiceTask() {
+                    if (!this.analysisResult || this.analysisResult.status !== 'completed') {
+                        this.showNotification('请先完成AI分析', 'warning');
+                        return;
+                    }
+
+                    if (!this.allCharactersAssigned) {
+                        this.showNotification('请为所有角色分配声音', 'warning');
+                        return;
+                    }
+
+                    this.creating = true;
+
+                    try {
+                        // 构建带角色信息的SSML（使用Edge TTS多语音格式）
+                        const segments = this.analysisResult.segments || [];
+
+                        // 获取当前预设的停顿设置
+                        const preset = this.ssmlPresets[this.selectedPreset] || {};
+                        const commaPause = preset.comma_pause || '500ms';
+                        const sentencePause = preset.sentence_pause || '1000ms';
+                        const paragraphPause = preset.paragraph_pause || '1200ms';
+                        const narrationVoice = this.ssmlConfig.voice || 'zh-CN-XiaoxiaoNeural';
+
+                        // 构建SSML
+                        let ssmlParts = [];
+                        ssmlParts.push('<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="zh-CN">');
+
+                        let currentVoice = null;
+                        let currentSegments = [];
+
+                        // 合并连续相同voice的segments
+                        const flushVoice = () => {
+                            if (currentVoice && currentSegments.length > 0) {
+                                ssmlParts.push(`<voice name="${currentVoice}">`);
+                                ssmlParts.push(...currentSegments);
+                                ssmlParts.push('</voice>');
+                                currentSegments = [];
+                            }
+                        };
+
+                        for (const segment of segments) {
+                            let voice;
+                            if (segment.type === 'dialog' && segment.speaker) {
+                                voice = this.characterVoices[segment.speaker] || narrationVoice;
+                            } else {
+                                voice = narrationVoice;
+                            }
+
+                            // 如果voice改变，先输出之前的
+                            if (voice !== currentVoice) {
+                                flushVoice();
+                                currentVoice = voice;
+                            }
+
+                            // 添加带停顿的句子
+                            if (segment.text.endsWith('，') || segment.text.endsWith(',')) {
+                                currentSegments.push(`<s>${this.escapeXml(segment.text)}<break time="${commaPause}"/></s>`);
+                            } else if (segment.text.endsWith('。') || segment.text.endsWith('.') || segment.text.endsWith('！') || segment.text.endsWith('!') || segment.text.endsWith('？') || segment.text.endsWith('?')) {
+                                const pause = segment.type === 'narration' ? paragraphPause : sentencePause;
+                                currentSegments.push(`<s>${this.escapeXml(segment.text)}<break time="${pause}"/></s>`);
+                            } else {
+                                currentSegments.push(`<s>${this.escapeXml(segment.text)}</s>`);
+                            }
+                        }
+
+                        // 输出最后剩余的
+                        flushVoice();
+
+                        ssmlParts.push('</speak>');
+
+                        const ssml = ssmlParts.join('\n');
+
+                        console.log('Multi-voice SSML:', ssml);
+
+                        // 创建TTS任务 - 使用SSML作为text，并添加特殊标记
+                        const response = await axios.post('http://localhost:8000/api/tts/ssml', {
+                            text: ssml,  // 直接发送SSML作为text
+                            use_ssml: true,
+                            custom_ssml: true,  // 标记为自定义SSML（多角色）
+                            voice: this.ssmlConfig.voice,
+                            rate: this.ssmlConfig.rate || '-15%',
+                            pitch: this.ssmlConfig.pitch || '-2Hz'
+                        });
+
+                        this.showNotification('多角色语音任务已创建', 'success');
+                        this.activeTab = 'tasks';
+                        this.analysisResult = null;
+                        this.characterVoices = {};
+                        this.text = '';
+                        await this.loadTasks();
+                    } catch (error) {
+                        console.error('Failed to create multi-voice task:', error);
+                        this.showNotification('创建任务失败: ' + (error.response?.data?.detail || error.message), 'error');
+                    } finally {
+                        this.creating = false;
+                    }
+                },
+
+                escapeXml(text) {
+                    return text
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&apos;');
+                }
+            },
+            computed: {
+                isAllSelected() {
+                    return this.tasks.length > 0 && this.selectedTasks.length === this.tasks.length;
+                },
+                currentProviderModels() {
+                    if (!this.newAIConfig || !this.newAIConfig.provider) return [];
+                    const provider = this.availableProviders.find(p => p.id === this.newAIConfig.provider);
+                    return provider ? provider.models : [];
+                },
+                hasAIConfig() {
+                    return this.aiConfigs && this.aiConfigs.length > 0;
+                },
+                allCharactersAssigned() {
+                    if (!this.analysisResult || !this.analysisResult.characters) return false;
+                    const characters = Object.keys(this.analysisResult.characters);
+                    return characters.every(char => this.characterVoices[char]);
                 }
             }
         }).mount('#app');

@@ -1,59 +1,64 @@
 #!/bin/bash
 
-# AI Voice TTS System 启动脚本
+# AI Voice TTS - Development Startup Script
 
-echo "🚀 启动 AI Voice TTS 系统..."
+# 设置环境变量
+export PYTHONPATH=/opt/projects/AIVoice/backend:$PYTHONPATH
+export DATABASE_URL=postgresql://tts_user:tts_password@localhost:15432/tts_db
+export REDIS_URL=redis://localhost:16379/0
+export STORAGE_PATH=/opt/projects/AIVoice/storage
 
-# 检查 Docker 是否运行
-if ! docker info > /dev/null 2>&1; then
-    echo "❌ Docker 未运行，请先启动 Docker"
-    exit 1
-fi
+echo "🚀 Starting AI Voice TTS Services..."
 
-# 检查 Docker Compose
-if ! command -v docker-compose &> /dev/null; then
-    echo "❌ Docker Compose 未安装"
-    exit 1
-fi
+# 停止已存在的进程
+echo "🛑 Stopping existing processes..."
+pkill -f "uvicorn app.main:app" 2>/dev/null
+pkill -f "celery.*app.core.celery_app" 2>/dev/null
+sleep 2
 
-# 创建必要的目录
-echo "📁 创建存储目录..."
-mkdir -p storage/{audio,temp,uploads}
+# 启动Backend
+echo "📡 Starting Backend (FastAPI)..."
+cd /opt/projects/AIVoice/backend
+nohup python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload > /tmp/aivoice_backend.log 2>&1 &
+BACKEND_PID=$!
+echo "   Backend PID: $BACKEND_PID"
+sleep 3
 
-# 复制环境变量文件（如果不存在）
-if [ ! -f backend/.env ]; then
-    echo "📝 创建环境变量文件..."
-    cp backend/.env.example backend/.env
-    echo "⚠️  请编辑 backend/.env 文件配置您的环境变量"
-fi
-
-# 构建并启动服务
-echo "🐳 构建并启动 Docker 容器..."
-docker-compose up -d --build
-
-# 等待服务启动
-echo "⏳ 等待服务启动..."
-sleep 10
-
-# 初始化数据库
-echo "🗄️  初始化数据库..."
-docker-compose exec -T backend alembic upgrade head
+# 启动Celery Worker
+echo "⚙️ Starting Celery Worker..."
+nohup celery -A app.core.celery_app worker --loglevel=info > /tmp/aivoice_celery.log 2>&1 &
+CELERY_PID=$!
+echo "   Celery PID: $CELERY_PID"
+sleep 2
 
 # 检查服务状态
-echo "🔍 检查服务状态..."
-docker-compose ps
+echo ""
+echo "✅ Services Status:"
+echo "===================="
+
+# 检查Backend
+if curl -s http://localhost:8000/ > /dev/null; then
+    echo "✓ Backend: Running (http://localhost:8000)"
+else
+    echo "✗ Backend: Failed to start"
+    echo "   Check logs: tail -f /tmp/aivoice_backend.log"
+fi
+
+# 检查Celery
+if ps -p $CELERY_PID > /dev/null; then
+    echo "✓ Celery Worker: Running (PID: $CELERY_PID)"
+else
+    echo "✗ Celery Worker: Failed to start"
+    echo "   Check logs: tail -f /tmp/aivoice_celery.log"
+fi
 
 echo ""
-echo "✅ AI Voice TTS 系统启动成功！"
+echo "📝 Logs:"
+echo "  Backend: tail -f /tmp/aivoice_backend.log"
+echo "  Celery: tail -f /tmp/aivoice_celery.log"
 echo ""
-echo "🌐 访问地址："
-echo "   - 前端界面: http://localhost"
-echo "   - API 文档: http://localhost/api/docs"
-echo "   - 健康检查: http://localhost/api/health"
+echo "🌐 Frontend URL: http://localhost:8000/app"
+echo "📚 API Docs: http://localhost:8000/docs"
 echo ""
-echo "📊 查看日志："
-echo "   docker-compose logs -f"
-echo ""
-echo "🛑 停止服务："
-echo "   docker-compose down"
+echo "💡 To stop services: pkill -f 'uvicorn app.main:app' && pkill -f 'celery.*app.core.celery_app'"
 echo ""

@@ -8,6 +8,7 @@ from .core.config import settings
 from .core.database import engine, Base
 from .api.tts import router as tts_router
 from .api.saved_audios import router as saved_audios_router
+from .api import ai_analysis
 from .core.celery_app import celery_app
 
 
@@ -47,6 +48,7 @@ app.add_middleware(
 # Include routers
 app.include_router(tts_router, prefix="/api")
 app.include_router(saved_audios_router, prefix="/api")
+app.include_router(ai_analysis.router, prefix="/api")
 
 # Serve static files
 if os.path.exists(settings.storage_path):

@@ -415,11 +415,219 @@ BEDTIME_FAIRY = SSMLConfig(
 )
 
 
+# 恐怖悬疑配置
+HORROR_SUSPENSE = SSMLConfig(
+    name="HORROR_SUSPENSE",
+    description="恐怖悬疑配置，低沉缓慢，营造紧张氛围",
+    voice=VoiceConfig(
+        name="zh-CN-XiaoxiaoNeural",
+        style="calm",
+        role=None
+    ),
+    pace=PaceConfig(
+        base_rate="-30%",  # 非常慢
+        opening_delta="-10%",
+        ending_delta="-10%",
+        transition_duration="500ms"
+    ),
+    mood=MoodConfig(
+        pitch="-30%",  # 低沉
+        emphasis="strong",
+        breathing=False,
+        thinking_pause=True,
+        volume="soft"  # 轻声
+    ),
+    structure=StructureConfig(
+        comma_pause="600ms",  # 长停顿
+        sentence_pause="1500ms",
+        paragraph_pause="3000ms",
+        max_sentence_len=120,
+        auto_split_long_sentence=True,
+        chapter_pause="4000ms",
+        dialog_pause="1500ms"
+    )
+)
+
+# 浪漫温馨配置
+ROMANTIC = SSMLConfig(
+    name="ROMANTIC",
+    description="浪漫温馨配置，温柔甜美，适合爱情故事",
+    voice=VoiceConfig(
+        name="zh-CN-XiaoxiaoNeural",
+        style="gentle",
+        role="youngadultfemale"
+    ),
+    pace=PaceConfig(
+        base_rate="-10%",
+        opening_delta="0%",
+        ending_delta="-5%",
+        transition_duration="200ms"
+    ),
+    mood=MoodConfig(
+        pitch="+5%",  # 轻快高音
+        emphasis="moderate",
+        breathing=True,
+        thinking_pause=False,
+        volume=None
+    ),
+    structure=StructureConfig(
+        comma_pause="300ms",
+        sentence_pause="600ms",
+        paragraph_pause="1000ms",
+        max_sentence_len=160,
+        auto_split_long_sentence=True,
+        chapter_pause="1500ms",
+        dialog_pause="500ms"
+    )
+)
+
+# 激昂热血配置
+PASSIONATE = SSMLConfig(
+    name="PASSIONATE",
+    description="激昂热血配置，快速有力，适合战斗场景",
+    voice=VoiceConfig(
+        name="zh-CN-YunyangNeural",  # 男声，更有力量
+        style="cheerful",
+        role=None
+    ),
+    pace=PaceConfig(
+        base_rate="+20%",  # 快速
+        opening_delta="+10%",
+        ending_delta="+5%",
+        transition_duration="200ms"
+    ),
+    mood=MoodConfig(
+        pitch="+15%",  # 高音
+        emphasis="strong",
+        breathing=False,
+        thinking_pause=False,
+        volume="loud"  # 大声
+    ),
+    structure=StructureConfig(
+        comma_pause="200ms",  # 短停顿
+        sentence_pause="400ms",
+        paragraph_pause="800ms",
+        max_sentence_len=150,
+        auto_split_long_sentence=True,
+        chapter_pause="1000ms",
+        dialog_pause="300ms"
+    )
+)
+
+# 悲伤抑郁配置
+MELANCHOLY = SSMLConfig(
+    name="MELANCHOLY",
+    description="悲伤抑郁配置，低沉缓慢，压抑感人",
+    voice=VoiceConfig(
+        name="zh-CN-XiaoxiaoNeural",
+        style="sad",
+        role=None
+    ),
+    pace=PaceConfig(
+        base_rate="-25%",  # 缓慢
+        opening_delta="-5%",
+        ending_delta="-10%",  # 结尾更慢
+        transition_duration="400ms"
+    ),
+    mood=MoodConfig(
+        pitch="-20%",  # 低音
+        emphasis="reduced",
+        breathing=True,
+        thinking_pause=True,
+        volume="soft"
+    ),
+    structure=StructureConfig(
+        comma_pause="500ms",
+        sentence_pause="1200ms",
+        paragraph_pause="2500ms",
+        max_sentence_len=130,
+        auto_split_long_sentence=True,
+        chapter_pause="3500ms",
+        dialog_pause="1000ms"
+    )
+)
+
+# 新闻报道配置
+NEWS = SSMLConfig(
+    name="NEWS",
+    description="新闻报道配置，专业平稳，清晰准确",
+    voice=VoiceConfig(
+        name="zh-CN-XiaoyiNeural",  # 专业女声
+        style=None,
+        role=None
+    ),
+    pace=PaceConfig(
+        base_rate="+5%",  # 稍快
+        opening_delta="0%",
+        ending_delta="0%",
+        transition_duration="100ms"
+    ),
+    mood=MoodConfig(
+        pitch="+2%",
+        emphasis="moderate",
+        breathing=False,
+        thinking_pause=False,
+        volume=None
+    ),
+    structure=StructureConfig(
+        comma_pause="250ms",
+        sentence_pause="500ms",
+        paragraph_pause="800ms",
+        max_sentence_len=180,
+        auto_split_long_sentence=True,
+        chapter_pause="1200ms",
+        dialog_pause="400ms"
+    )
+)
+
+# 教学讲解配置
+EDUCATIONAL = SSMLConfig(
+    name="EDUCATIONAL",
+    description="教学讲解配置，清晰稳重，有条理",
+    voice=VoiceConfig(
+        name="zh-CN-YunxiNeural",  # 稳重男声
+        style=None,
+        role=None
+    ),
+    pace=PaceConfig(
+        base_rate="-5%",  # 稍慢，便于理解
+        opening_delta="0%",
+        ending_delta="0%",
+        transition_duration="200ms"
+    ),
+    mood=MoodConfig(
+        pitch="+3%",
+        emphasis="moderate",
+        breathing=False,
+        thinking_pause=True,
+        volume=None
+    ),
+    structure=StructureConfig(
+        comma_pause="400ms",
+        sentence_pause="700ms",
+        paragraph_pause="1200ms",
+        max_sentence_len=140,
+        auto_split_long_sentence=True,
+        chapter_pause="2000ms",
+        dialog_pause="600ms"
+    )
+)
+
+
 # 预设配置字典
 PRESET_CONFIGS = {
+    # 睡前故事系列
     "BEDTIME_SOFT": BEDTIME_SOFT,
     "BEDTIME_BALANCED": BEDTIME_BALANCED,
     "BEDTIME_FAIRY": BEDTIME_FAIRY,
+    # 情感系列
+    "HORROR_SUSPENSE": HORROR_SUSPENSE,
+    "ROMANTIC": ROMANTIC,
+    "PASSIONATE": PASSIONATE,
+    "MELANCHOLY": MELANCHOLY,
+    # 通用系列
+    "NEWS": NEWS,
+    "EDUCATIONAL": EDUCATIONAL,
 }
 
 

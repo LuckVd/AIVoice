@@ -413,3 +413,21 @@ __pycache__/
 
 # Claude Code related
 .claude/
+
+# Test scripts
+simple_tts_api.py
+test_tts_direct.py
+fix_duration.py
+
+# Additional virtual environments
+venv_new/
+*_venv/
+
+# Temporary logs
+/tmp/*.log
+*.log
+
+# User configurations
+user_config.json
+local_config.json
+my_config.json

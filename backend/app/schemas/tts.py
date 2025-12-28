@@ -16,6 +16,7 @@ class TTSRequestCreateSSML(BaseModel):
     text: str = Field(..., min_length=1, max_length=200000, description="要转换的文本（支持长文本）")
     ssml_preset: Optional[str] = Field(None, description="SSML 预设配置: BEDTIME_SOFT/BEDTIME_BALANCED/BEDTIME_FAIRY")
     use_ssml: Optional[bool] = Field(True, description="是否使用 SSML 生成")
+    custom_ssml: Optional[bool] = Field(False, description="text是否为预先生成的完整SSML（多角色语音等）")
 
     # 高级配置（可选，覆盖预设）
     voice: Optional[str] = Field(None, description="语音模型，覆盖预设")

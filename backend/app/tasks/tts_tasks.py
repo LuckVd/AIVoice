@@ -24,7 +24,13 @@ def process_tts_task_ssml(self, task_id: int, ssml_preset: str = None, ssml_over
     return _process_tts_task_internal(self, task_id, use_ssml=True, ssml_preset=ssml_preset, ssml_overrides=ssml_overrides)
 
 
-def _process_tts_task_internal(self, task_id: int, use_ssml: bool = False, ssml_preset: str = None, ssml_overrides: dict = None):
+@celery_app.task(bind=True)
+def process_tts_task_custom_ssml(self, task_id: int):
+    """Background task to process custom SSML (multi-voice, etc.)"""
+    return _process_tts_task_internal(self, task_id, use_ssml=True, custom_ssml=True)
+
+
+def _process_tts_task_internal(self, task_id: int, use_ssml: bool = False, ssml_preset: str = None, ssml_overrides: dict = None, custom_ssml: bool = False):
     """Internal TTS processing task"""
     db = SessionLocal()
     tts_service = TTSService()
@@ -51,51 +57,83 @@ def _process_tts_task_internal(self, task_id: int, use_ssml: bool = False, ssml_
         asyncio.set_event_loop(loop)
 
         try:
-            # Prepare SSML configuration if needed
-            ssml_config = None
-            if use_ssml:
-                if ssml_overrides:
-                    ssml_config = tts_service.create_ssml_config_from_preset(
-                        ssml_preset or tts_service.default_ssml_config,
-                        **ssml_overrides
+            # Initialize chunks variable (will be set based on processing mode)
+            chunks = []
+
+            # Check if this is custom SSML (multi-voice)
+            if custom_ssml:
+                # Text is already complete SSML, use it directly
+                ssml_text = tts_request.text
+
+                # Set total_chunks to 1 for custom SSML
+                tts_request.total_chunks = 1
+                chunks = [ssml_text]  # Single chunk for custom SSML
+                db.commit()
+
+                # Update progress
+                current_task.update_state(
+                    state='PROCESSING',
+                    meta={'progress': 0.3, 'message': 'Processing multi-voice SSML...'}
+                )
+
+                # Generate audio using the custom SSML directly
+                audio_path = loop.run_until_complete(
+                    tts_service.generate_tts_async(
+                        tts_request.task_id,
+                        ssml_text,  # Use SSML directly as text
+                        tts_request.voice,
+                        "",  # Empty rate
+                        "",  # Empty pitch
+                        use_ssml=True,
+                        custom_ssml=True
                     )
-                else:
-                    ssml_config = ssml_preset or tts_service.default_ssml_config
+                )
+            else:
+                # Prepare SSML configuration if needed
+                ssml_config = None
+                if use_ssml:
+                    if ssml_overrides:
+                        ssml_config = tts_service.create_ssml_config_from_preset(
+                            ssml_preset or tts_service.default_ssml_config,
+                            **ssml_overrides
+                        )
+                    else:
+                        ssml_config = ssml_preset or tts_service.default_ssml_config
 
-                # SSML generation will be done during chunk processing
-                # (temporarily disabled storing in database)
-                pass
+                    # SSML generation will be done during chunk processing
+                    # (temporarily disabled storing in database)
+                    pass
 
-            # Clean and split text to get chunk count
-            cleaned_text = tts_service.clean_text(tts_request.text)
+                # Clean and split text to get chunk count
+                cleaned_text = tts_service.clean_text(tts_request.text)
 
-            # Adjust chunk size based on SSML configuration
-            if use_ssml and ssml_config:
-                if isinstance(ssml_config, str) and ssml_config in PRESET_CONFIGS:
-                    chunk_size = PRESET_CONFIGS[ssml_config].structure.max_sentence_len * 3
-                elif hasattr(ssml_config, 'structure'):
-                    chunk_size = ssml_config.structure.max_sentence_len * 3
+                # Adjust chunk size based on SSML configuration
+                if use_ssml and ssml_config:
+                    if isinstance(ssml_config, str) and ssml_config in PRESET_CONFIGS:
+                        chunk_size = PRESET_CONFIGS[ssml_config].structure.max_sentence_len * 3
+                    elif hasattr(ssml_config, 'structure'):
+                        chunk_size = ssml_config.structure.max_sentence_len * 3
+                    else:
+                        chunk_size = 500
                 else:
                     chunk_size = 500
-            else:
-                chunk_size = 500
 
-            chunks = tts_service.split_text(cleaned_text, chunk_size)
-            tts_request.total_chunks = len(chunks)
-            db.commit()
+                chunks = tts_service.split_text(cleaned_text, chunk_size)
+                tts_request.total_chunks = len(chunks)
+                db.commit()
 
-            # Update progress
-            current_task.update_state(
-                state='PROCESSING',
-                meta={'progress': 0.2, 'message': f'Processing {len(chunks)} text chunks...'}
-            )
+                # Update progress
+                current_task.update_state(
+                    state='PROCESSING',
+                    meta={'progress': 0.2, 'message': f'Processing {len(chunks)} text chunks...'}
+                )
 
-            # Generate audio
-            # When using SSML, pass empty rate/pitch to avoid conflicts with SSML parameters
-            rate = "" if use_ssml else tts_request.rate
-            pitch = "" if use_ssml else tts_request.pitch
+                # Generate audio
+                # When using SSML, pass empty rate/pitch to avoid conflicts with SSML parameters
+                rate = "" if use_ssml else tts_request.rate
+                pitch = "" if use_ssml else tts_request.pitch
 
-            audio_path = loop.run_until_complete(tts_service.generate_tts_async(
+                audio_path = loop.run_until_complete(tts_service.generate_tts_async(
                 tts_request.task_id,
                 tts_request.text,
                 tts_request.voice,

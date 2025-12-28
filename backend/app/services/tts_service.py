@@ -228,9 +228,33 @@ class TTSService:
             chunks.append(chunk.strip())
         return chunks
 
-    async def generate_audio_chunk(self, text: str, voice: str, rate: str, pitch: str, output_path: Path, use_ssml: bool = False, ssml_config: Optional[Union[str, SSMLConfig]] = None) -> None:
+    async def generate_audio_chunk(self, text: str, voice: str, rate: str, pitch: str, output_path: Path, use_ssml: bool = False, ssml_config: Optional[Union[str, SSMLConfig]] = None, custom_ssml: bool = False) -> None:
         """Generate audio for a single text chunk"""
         try:
+            # For custom SSML (multi-voice), check if it contains multiple voice tags
+            if custom_ssml:
+                logger.info(f"🎭 Custom SSML mode: SSML length: {len(text)}")
+
+                # Check if SSML contains multiple <voice> tags
+                import re
+                voice_tags = re.findall(r'<voice\s+name="([^"]+)">', text)
+                unique_voices = set(voice_tags)
+
+                if len(unique_voices) > 1:
+                    logger.info(f"🎭 Multi-voice SSML detected: {len(unique_voices)} voices - {unique_voices}")
+                    await self._generate_multi_voice_audio(text, output_path)
+                    return
+                else:
+                    # Single voice SSML, use directly
+                    logger.info(f"📝 Single-voice SSML, using directly")
+                    try:
+                        ssml_communicate(text, str(output_path))
+                        logger.info(f"✅ SSML audio saved to: {output_path}")
+                        return
+                    except Exception as e:
+                        logger.error(f"❌ SSML communication failed: {e}")
+                        raise
+
             if use_ssml:
                 # 使用SSML配置直接生成SSML
                 if ssml_config is None:
@@ -372,10 +396,94 @@ class TTSService:
         except Exception as e:
             raise RuntimeError(f"Failed to generate audio for chunk: {str(e)}")
 
+    async def _generate_multi_voice_audio(self, ssml_text: str, output_path: Path) -> None:
+        """Generate audio from multi-voice SSML by splitting and merging"""
+        import re
+        import tempfile
+        import subprocess
+
+        logger.info(f"🎭 Starting multi-voice audio generation")
+        logger.info(f"📝 Original SSML preview: {ssml_text[:500]}...")
+
+        # Extract all voice sections from SSML
+        voice_sections = []
+        pattern = r'<voice\s+name="([^"]+)">(.*?)</voice>'
+        matches = re.findall(pattern, ssml_text, re.DOTALL)
+
+        if not matches:
+            logger.error("❌ No voice sections found in SSML")
+            raise ValueError("Invalid multi-voice SSML: no voice sections found")
+
+        logger.info(f"📊 Found {len(matches)} voice sections")
+
+        # Create temp directory for individual audio files
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_files = []
+
+            # Generate audio for each voice section
+            for idx, (voice_name, content) in enumerate(matches):
+                logger.info(f"🎙️  Generating audio {idx+1}/{len(matches)}: {voice_name}")
+                logger.info(f"📝 Content preview: {content[:200]}...")
+
+                # Clean content - remove SSML tags and extract plain text
+                # Remove <s>, </s>, <break> tags
+                clean_content = re.sub(r'<break[^>]*>', '', content)  # Remove breaks first
+                clean_content = re.sub(r'</?s[^>]*>', '', clean_content)  # Remove s tags
+                clean_content = clean_content.strip()
+
+                logger.info(f"📝 Clean text: {clean_content[:200]}...")
+
+                # Generate audio for this voice section using edge_tts directly
+                temp_file = Path(temp_dir) / f"part_{idx:03d}.mp3"
+                temp_files.append(str(temp_file))
+
+                try:
+                    # Use edge_tts.Communicate with plain text (not SSML)
+                    communicate = edge_tts.Communicate(text=clean_content, voice=voice_name)
+                    await communicate.save(str(temp_file))
+                    logger.info(f"✅ Generated audio for {voice_name}: {temp_file}")
+                except Exception as e:
+                    logger.error(f"❌ Failed to generate audio for {voice_name}: {e}")
+                    raise
+
+            # Merge all audio files using ffmpeg
+            logger.info(f"🔧 Merging {len(temp_files)} audio files...")
+
+            # Create concat list for ffmpeg
+            concat_list_path = Path(temp_dir) / "concat_list.txt"
+            with open(concat_list_path, 'w') as f:
+                for temp_file in temp_files:
+                    # Use absolute path to avoid issues
+                    abs_path = Path(temp_file).resolve()
+                    f.write(f"file '{abs_path}'\n")
+
+            # Use ffmpeg to concatenate
+            cmd = [
+                'ffmpeg',
+                '-y',  # Overwrite output file
+                '-f', 'concat',
+                '-safe', '0',
+                '-i', str(concat_list_path),
+                '-c', 'copy',
+                str(output_path)
+            ]
+
+            logger.info(f"🔧 Running ffmpeg: {' '.join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, text=True)
+
+            if result.returncode != 0:
+                logger.error(f"❌ FFmpeg merge failed: {result.stderr}")
+                raise RuntimeError(f"Failed to merge audio files: {result.stderr}")
+
+            logger.info(f"✅ Multi-voice audio saved to: {output_path}")
+
     async def generate_tts_async(self, task_id: str, text: str, voice: str, rate: str, pitch: str,
-                              use_ssml: bool = False, ssml_config: Optional[Union[str, SSMLConfig]] = None) -> str:
+                              use_ssml: bool = False, ssml_config: Optional[Union[str, SSMLConfig]] = None,
+                              custom_ssml: bool = False) -> str:
         """Generate TTS audio and return the file path with memory optimization for long text"""
         print(f"Starting TTS generation for task {task_id}, text length: {len(text)}")
+        if custom_ssml:
+            print(f"Custom SSML mode: using pre-generated SSML directly")
         print(f"Initial memory usage: {self.check_memory_usage():.1f}%")
 
         # Create task-specific directories
@@ -384,37 +492,48 @@ class TTSService:
         parts_dir.mkdir(parents=True, exist_ok=True)
 
         try:
-            # Clean and split text with memory-aware chunk sizing
-            cleaned_text = text if use_ssml else self.clean_text(text)
-            if not cleaned_text:
-                raise ValueError("Text is empty after cleaning")
-
-            # Get optimal chunk size and concurrency based on text length and memory
-            text_length = len(cleaned_text)
-            if use_ssml and ssml_config:
-                if isinstance(ssml_config, str) and ssml_config in PRESET_CONFIGS:
-                    base_chunk_size = PRESET_CONFIGS[ssml_config].structure.max_sentence_len * 3
-                elif hasattr(ssml_config, 'structure'):
-                    base_chunk_size = ssml_config.structure.max_sentence_len * 3
-                else:
-                    base_chunk_size = settings.max_chars_per_chunk
-                chunk_size = min(base_chunk_size, self.get_optimal_chunk_size(text_length))
+            # For custom SSML, use it directly without cleaning/splitting
+            if custom_ssml:
+                cleaned_text = text
+                text_length = len(cleaned_text)
+                # Use entire SSML as single chunk
+                chunks = [cleaned_text]
+                chunk_size = text_length
+                max_concurrency = 1  # Custom SSML uses single chunk
             else:
-                chunk_size = self.get_optimal_chunk_size(text_length)
+                # Clean and split text with memory-aware chunk sizing
+                cleaned_text = text if use_ssml else self.clean_text(text)
+                if not cleaned_text:
+                    raise ValueError("Text is empty after cleaning")
 
-            max_concurrency = self.get_optimal_concurrency(text_length)
+                # Get optimal chunk size and concurrency based on text length and memory
+                text_length = len(cleaned_text)
+                if use_ssml and ssml_config:
+                    if isinstance(ssml_config, str) and ssml_config in PRESET_CONFIGS:
+                        base_chunk_size = PRESET_CONFIGS[ssml_config].structure.max_sentence_len * 3
+                    elif hasattr(ssml_config, 'structure'):
+                        base_chunk_size = ssml_config.structure.max_sentence_len * 3
+                    else:
+                        base_chunk_size = settings.max_chars_per_chunk
+                    chunk_size = min(base_chunk_size, self.get_optimal_chunk_size(text_length))
+                else:
+                    chunk_size = self.get_optimal_chunk_size(text_length)
+
+                max_concurrency = self.get_optimal_concurrency(text_length)
             print(f"Using chunk size: {chunk_size}, max concurrency: {max_concurrency}")
 
-            chunks = self.split_text(cleaned_text, chunk_size)
-            if not chunks:
-                raise ValueError("No text chunks to process")
-
-            print(f"Split into {len(chunks)} chunks")
+            # Only split text if not custom SSML
+            if not custom_ssml:
+                chunks = self.split_text(cleaned_text, chunk_size)
+                if not chunks:
+                    raise ValueError("No text chunks to process")
+                print(f"Split into {len(chunks)} chunks")
+            # Else, chunks was already set above for custom SSML
 
             # Process chunks in batches to manage memory
             await self._process_chunks_in_batches(
                 chunks, task_id, parts_dir, voice, rate, pitch,
-                use_ssml, ssml_config, text, max_concurrency
+                use_ssml, ssml_config, text, max_concurrency, custom_ssml
             )
 
             # Force garbage collection before concatenation
@@ -437,7 +556,8 @@ class TTSService:
     async def _process_chunks_in_batches(self, chunks: List[str], task_id: str, parts_dir: Path,
                                        voice: str, rate: str, pitch: str, use_ssml: bool,
                                        ssml_config: Optional[Union[str, SSMLConfig]],
-                                       original_text: str, max_concurrency: int):
+                                       original_text: str, max_concurrency: int,
+                                       custom_ssml: bool = False):
         """Process audio chunks in batches to manage memory usage"""
         total_chunks = len(chunks)
         processed = 0
@@ -467,7 +587,7 @@ class TTSService:
                     try:
                         async with sem:
                             # 对每个分段分别生成SSML，避免重复处理整个文本
-                            await self.generate_audio_chunk(chunk_text, voice, rate, pitch, output_file, use_ssml, ssml_config)
+                            await self.generate_audio_chunk(chunk_text, voice, rate, pitch, output_file, use_ssml, ssml_config, custom_ssml)
                             return
                     except Exception as e:
                         if attempt == settings.max_retries:

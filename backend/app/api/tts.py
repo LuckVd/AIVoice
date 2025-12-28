@@ -11,7 +11,7 @@ from ..schemas.tts import (
     TTSRequestCreateSSML, TTSRequestCreateSSMLResponse,
     SSMLPresetResponse, SSMLPresetsListResponse, SSMLPreviewResponse
 )
-from ..tasks.tts_tasks import process_tts_task, process_tts_task_ssml
+from ..tasks.tts_tasks import process_tts_task, process_tts_task_ssml, process_tts_task_custom_ssml
 from ..services.tts_service import TTSService
 from ..services.ssml_generator import generate_ssml, PRESET_CONFIGS
 
@@ -166,6 +166,14 @@ async def create_tts_request_ssml(
     if len(request_data.text) > 200000:
         raise HTTPException(status_code=400, detail="Text too long (max 200000 characters)")
 
+    # Check if text is already complete SSML (for multi-voice)
+    is_custom_ssml = getattr(request_data, 'custom_ssml', False)
+
+    # Debug logging
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"🎭 Multi-voice TTS request: custom_ssml={is_custom_ssml}, use_ssml={request_data.use_ssml}, text_preview={request_data.text[:100]}...")
+
     # Determine if using SSML
     use_ssml = request_data.use_ssml and not request_data.legacy_mode
 
@@ -173,7 +181,7 @@ async def create_tts_request_ssml(
     ssml_config = None
     ssml_preset_name = None
 
-    if use_ssml:
+    if use_ssml and not is_custom_ssml:
         if request_data.ssml_preset:
             ssml_preset_name = request_data.ssml_preset
             if ssml_preset_name not in PRESET_CONFIGS:
@@ -217,22 +225,33 @@ async def create_tts_request_ssml(
     db.refresh(tts_request)
 
     # Estimate chunks
-    if use_ssml and ssml_config:
+    if is_custom_ssml:
+        # For custom SSML, estimate based on text length
+        estimated_chunks = max(1, len(request_data.text) // 3000)
+    elif use_ssml and ssml_config:
         max_len = ssml_config.structure.max_sentence_len * 3
+        chunks = tts_service.split_text(tts_service.clean_text(request_data.text), max_len)
+        estimated_chunks = len(chunks)
     else:
         max_len = 500
-
-    chunks = tts_service.split_text(tts_service.clean_text(request_data.text), max_len)
-    estimated_chunks = len(chunks)
+        chunks = tts_service.split_text(tts_service.clean_text(request_data.text), max_len)
+        estimated_chunks = len(chunks)
 
     # Queue background task
-    if use_ssml:
+    logger.info(f"🎯 Queueing task: is_custom_ssml={is_custom_ssml}, use_ssml={use_ssml}")
+    if is_custom_ssml:
+        # Custom SSML mode - pass the SSML directly
+        logger.info(f"✅ Queuing process_tts_task_custom_ssml for task {tts_request.id}")
+        process_tts_task_custom_ssml.delay(tts_request.id)
+    elif use_ssml:
+        logger.info(f"🔊 Queuing process_tts_task_ssml for task {tts_request.id}")
         process_tts_task_ssml.delay(
             tts_request.id,
             ssml_preset=ssml_preset_name,
             ssml_overrides=overrides if overrides else None
         )
     else:
+        logger.info(f"📝 Queuing process_tts_task (legacy) for task {tts_request.id}")
         process_tts_task.delay(tts_request.id)
 
     return TTSRequestCreateSSMLResponse(
