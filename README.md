@@ -12,12 +12,16 @@
 - **异步处理**: 基于 Celery 的后台任务队列，支持高并发
 
 ### 🎨 现代化界面
+- **侧边栏导航**: 左侧可折叠菜单，快速切换不同功能模块
+- **任务列表视图**: 水平表格布局，清晰展示所有任务信息
+- **批量操作**: 支持多选和批量删除任务
+- **音频保存**: 将喜欢的音频保存到收藏夹，方便管理
 - **响应式设计**: 完美适配桌面、平板、手机等设备
-- **美观表格**: 现代化表格设计，文字对齐整齐，按钮不跨行
 - **实时状态**: 任务状态实时更新，支持进度跟踪
 - **音频预览**: 在线音频播放和下载功能
+- **固定播放器**: 右下角浮动音频播放器，便捷播放
+- **扁平化设计**: 现代扁平按钮风格，简洁美观
 - **快速预设**: 6种预设配置（故事朗读、新闻播报、教学讲解等）
-- **文本操作**: 全屏阅读模式和一键复制文本功能
 - **优雅通知**: 现代化的通知系统，无干扰式反馈
 
 ### 🏗️ 技术架构
@@ -86,26 +90,38 @@ celery -A app.core.celery_app worker --loglevel=info
 ### Web 界面操作
 
 1. **创建语音任务**
-   - 点击"创建任务"按钮
-   - 输入要转换的文本内容
+   - 点击左侧菜单"📝 创建任务"
+   - 输入要转换的文本内容（支持长文本自动分块）
    - 选择语音模型（支持中文、英文、方言等）
    - 调节语速和音调参数
    - 可使用快速预设配置
-   - 点击"开始转换"
+   - 点击"🚀 开始语音合成"
 
 2. **任务管理**
+   - 点击左侧菜单"📋 任务列表"
    - 查看所有任务的列表
    - 实时更新任务状态（等待中、处理中、已完成、失败）
-   - 在线播放生成的音频
-   - 下载音频文件到本地
-   - 查看任务详细信息
+   - 使用复选框选择多个任务进行批量删除
+   - 查看任务详细信息（点击📄按钮）
+   - 在线播放生成的音频（点击▶️按钮）
+   - 下载音频文件到本地（点击⬇️按钮）
+   - 保存喜欢的音频（点击💾按钮）
 
-3. **快速预设**
-   - 📚 **故事朗读**: 温和女声，适中语速
-   - 📰 **新闻播报**: 清晰女声，稍快语速
-   - 🎓 **教学讲解**: 磁性男声，平稳语速
-   - 🌙 **温柔睡前**: 甜美女声，缓慢语速
-   - ⚡ **活力宣传**: 活泼女声，明快语速
+3. **保存的音频**
+   - 点击左侧菜单"💾 保存的音频"
+   - 查看所有已保存的音频列表
+   - 在线播放、下载或删除保存的音频
+
+4. **侧边栏操作**
+   - 点击顶部的◀按钮折叠/展开侧边栏
+   - 折叠后只显示图标，节省空间
+
+5. **快速预设**
+   - 📙 **极轻柔睡前**: 甜美女声，极慢语速，适合助眠
+   - 📰 **标准新闻**: 清晰女声，标准语速，适合新闻
+   - 🎓 **教学讲解**: 磁性男声，平稳语速，适合教学
+   - 🌙 **温柔睡前**: 甜美女声，缓慢语速，适合故事
+   - ⚡ **活力宣传**: 活泼女声，明快语速，适合宣传
    - 🎨 **自定义**: 根据需要自行调整
 
 ### API 使用
@@ -127,6 +143,20 @@ curl "http://localhost:8000/api/tts/"
 # 获取任务详情
 curl "http://localhost:8000/api/tts/{task_id}"
 
+# 保存音频
+curl -X POST "http://localhost:8000/api/saved-audios" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task_id": "task_id_here",
+    "name": "我的音频"
+  }'
+
+# 获取保存的音频列表
+curl "http://localhost:8000/api/saved-audios"
+
+# 删除保存的音频
+curl -X DELETE "http://localhost:8000/api/saved-audios/{audio_id}"
+
 # 健康检查
 curl "http://localhost:8000/health"
 ```
@@ -138,13 +168,15 @@ AIVoice/
 ├── backend/                    # 后端代码
 │   ├── app/
 │   │   ├── api/               # API 路由
-│   │   │   └── tts.py         # TTS API 接口
+│   │   │   ├── tts.py         # TTS API 接口
+│   │   │   └── saved_audios.py # 保存音频 API 接口
 │   │   ├── core/              # 核心模块
 │   │   │   ├── config.py      # 配置文件
 │   │   │   ├── database.py    # 数据库连接
 │   │   │   └── celery_app.py  # Celery 配置
 │   │   ├── models/            # 数据模型
-│   │   │   └── tts.py         # TTS 任务模型
+│   │   │   ├── tts.py         # TTS 任务模型
+│   │   │   └── saved_audio.py # 保存音频模型
 │   │   ├── services/          # 业务逻辑
 │   │   │   └── tts_service.py # TTS 服务
 │   │   ├── schemas/           # Pydantic 模式
@@ -152,15 +184,16 @@ AIVoice/
 │   │   └── tasks/             # Celery 任务
 │   │       └── tts_tasks.py   # TTS 异步任务
 │   └── alembic/               # 数据库迁移
+│       └── versions/          # 迁移文件
+│           └── 20241227_add_saved_audios_table.py
 ├── storage/                   # 存储目录
 │   ├── audio/                 # 生成的音频文件
+│   ├── saved/                # 保存的音频文件
 │   ├── uploads/               # 上传文件
 │   ├── temp/                  # 临时文件
 │   └── index.html             # Web 界面
-├── docker/                    # Docker 配置
-│   ├── Dockerfile.backend
-│   ├── Dockerfile.celery
-│   └── Dockerfile.frontend
+├── frontend/                  # 前端配置
+│   └── nginx.conf            # Nginx 配置
 ├── docker-compose.yml         # Docker Compose 配置
 ├── requirements.txt           # Python 依赖
 └── README.md                  # 项目文档
@@ -286,10 +319,20 @@ alembic downgrade -1
 
 所有 API 端点都在 `app/api/` 目录下：
 
+**TTS 任务相关：**
 - `GET /api/tts/` - 获取任务列表
 - `POST /api/tts/` - 创建新任务
 - `GET /api/tts/{task_id}` - 获取任务详情
 - `GET /api/tts/{task_id}/status` - 获取任务状态
+- `DELETE /api/tts/{task_id}` - 删除任务
+- `PATCH /api/tts/{task_id}/cancel` - 取消任务
+
+**保存音频相关：**
+- `GET /api/saved-audios` - 获取保存的音频列表
+- `POST /api/saved-audios` - 保存音频
+- `GET /api/saved-audios/{audio_id}` - 获取单个保存的音频
+- `DELETE /api/saved-audios/{audio_id}` - 删除保存的音频
+- `GET /api/saved-audios/{audio_id}/download` - 下载保存的音频
 
 ## 🔒 安全考虑
 

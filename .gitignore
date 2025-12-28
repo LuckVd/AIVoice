@@ -243,9 +243,11 @@ $RECYCLE.BIN/
 # Project specific
 # Storage directories (keep structure but ignore content)
 storage/audio/*
+storage/saved/*
 storage/uploads/*
 storage/temp/*
 !storage/audio/.gitkeep
+!storage/saved/.gitkeep
 !storage/uploads/.gitkeep
 !storage/temp/.gitkeep
 

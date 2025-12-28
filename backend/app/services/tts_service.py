@@ -69,7 +69,8 @@ class TTSService:
 
         for strategy in strategies:
             chunks = strategy(text)
-            if len(chunks) > 1 or len(chunks[0]) <= max_chars:
+            # 检查是否所有分块都在限制内
+            if all(len(chunk) <= max_chars for chunk in chunks):
                 break
 
         return chunks
@@ -573,6 +574,28 @@ class TTSService:
         if audio_path.exists():
             return f"/storage/audio/{task_id}.mp3"
         return None
+
+    def get_audio_duration(self, audio_path: str) -> float:
+        """Get actual audio duration in seconds using ffprobe"""
+        try:
+            import subprocess
+            result = subprocess.run(
+                ['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+                 '-of', 'default=noprint_wrappers=1:nokey=1', str(audio_path)],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=10
+            )
+            duration = float(result.stdout.strip())
+            logger.info(f"🎵 Audio duration: {duration:.2f} seconds")
+            return duration
+        except subprocess.CalledProcessError as e:
+            logger.error(f"ffprobe failed: {e}")
+            return 0.0
+        except Exception as e:
+            logger.error(f"Failed to get audio duration: {e}")
+            return 0.0
 
     def delete_audio(self, task_id: str) -> bool:
         """Delete the audio file for a task"""

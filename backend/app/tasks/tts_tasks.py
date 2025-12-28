@@ -105,32 +105,11 @@ def _process_tts_task_internal(self, task_id: int, use_ssml: bool = False, ssml_
                 ssml_config=ssml_config
             ))
 
-            # Get file size and duration (approximate)
+            # Get file size and actual duration using ffprobe
             file_size = os.path.getsize(audio_path) if os.path.exists(audio_path) else 0
-            # Adjust duration estimate based on SSML configuration
-            if use_ssml and ssml_config:
-                if isinstance(ssml_config, str) and ssml_config in PRESET_CONFIGS:
-                    base_rate = PRESET_CONFIGS[ssml_config].pace.base_rate
-                elif hasattr(ssml_config, 'pace'):
-                    base_rate = ssml_config.pace.base_rate
-                else:
-                    base_rate = "-15%"
 
-                # Estimate duration based on rate
-                rate_match = re.match(r'([+-]?)(\d+)%', base_rate)
-                if rate_match:
-                    rate_value = int(rate_match.group(2))
-                    if rate_match.group(1) == '-':
-                        # Slower speech, longer duration
-                        duration_multiplier = 1 + (rate_value / 100)
-                    else:
-                        # Faster speech, shorter duration
-                        duration_multiplier = 1 - (rate_value / 200)  # Less impact for faster speech
-                    estimated_duration = len(tts_request.text) * 60 / 150 * duration_multiplier
-                else:
-                    estimated_duration = len(tts_request.text) * 60 / 150
-            else:
-                estimated_duration = len(tts_request.text) * 60 / 150
+            # Get actual audio duration using ffprobe
+            actual_duration = tts_service.get_audio_duration(audio_path)
 
             # Update request with success
             tts_request.status = TaskStatus.COMPLETED
@@ -138,7 +117,7 @@ def _process_tts_task_internal(self, task_id: int, use_ssml: bool = False, ssml_
             tts_request.completed_at = datetime.utcnow()
             tts_request.processed_chunks = len(chunks)
             tts_request.file_size_bytes = file_size
-            tts_request.duration_seconds = int(estimated_duration)
+            tts_request.duration_seconds = int(actual_duration) if actual_duration else 0
             db.commit()
 
             # Final progress update
