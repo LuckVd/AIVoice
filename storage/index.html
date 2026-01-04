@@ -2512,7 +2512,17 @@
                 async loadTasks() {
                     try {
                         const response = await axios.get('http://localhost:8000/api/tts/');
-                        this.tasks = response.data.slice(0, 20);
+                        // Calculate progress for each task
+                        this.tasks = response.data.slice(0, 20).map(task => {
+                            let progress = 0;
+                            if (task.total_chunks > 0) {
+                                progress = task.processed_chunks / task.total_chunks;
+                            }
+                            return {
+                                ...task,
+                                progress: progress
+                            };
+                        });
                     } catch (error) {
                         console.error('Failed to load tasks:', error);
                     }
@@ -2526,9 +2536,18 @@
                 async refreshTask(taskId) {
                     try {
                         const response = await axios.get(`http://localhost:8000/api/tts/${taskId}`);
+                        const task = response.data;
                         const taskIndex = this.tasks.findIndex(t => t.task_id === taskId);
                         if (taskIndex !== -1) {
-                            this.tasks[taskIndex] = response.data;
+                            // Calculate progress
+                            let progress = 0;
+                            if (task.total_chunks > 0) {
+                                progress = task.processed_chunks / task.total_chunks;
+                            }
+                            this.tasks[taskIndex] = {
+                                ...task,
+                                progress: progress
+                            };
                         }
                     } catch (error) {
                         console.error('Failed to refresh task:', error);

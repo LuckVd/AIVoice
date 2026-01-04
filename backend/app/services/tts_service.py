@@ -292,67 +292,60 @@ class TTSService:
                 logger.info(f"🚀 开始SSML处理，SSML长度: {len(final_ssml)}")
                 logger.info(f"📝 SSML内容预览: {final_ssml[:200]}...")
 
-                # 使用自定义WebSocket SSML通信，避免edge-tts念出SSML标签
-                # 这将直接调用ssml_communicate函数而不是edge_tts.Communicate
-                try:
-                    logger.info(f"🔄 尝试使用自定义WebSocket SSML通信...")
-                    ssml_communicate(final_ssml, str(output_path))
-                    logger.info(f"✅ SSML通信成功！音频保存到: {output_path}")
-                    return  # 直接返回，跳过下面的edge-tts处理
-                except Exception as e:
-                    logger.error(f"⚠️ SSML通信失败，回退到edge-tts: {e}")
-                    logger.error(f"🔄 回退原因: {type(e).__name__} - {str(e)}")
+                # 跳过失败的WebSocket SSML尝试，直接使用edge-tts回退方案
+                # 这样可以节省每个chunk 1-2秒的重试时间
+                logger.info(f"🔄 使用edge-tts处理（跳过WebSocket尝试以提升性能）")
 
-                    # 如果SSML通信失败，我们需要使用edge-tts但是不能直接传递SSML
-                    # 提取SSML配置参数并使用edge-tts的标准参数
-                    rate_param = config_obj.pace.base_rate
-                    pitch_param = config_obj.mood.pitch
+                # 如果SSML通信失败，我们需要使用edge-tts但是不能直接传递SSML
+                # 提取SSML配置参数并使用edge-tts的标准参数
+                rate_param = config_obj.pace.base_rate
+                pitch_param = config_obj.mood.pitch
 
-                    # 确保rate参数格式正确
-                    if rate_param == "0%":
+                # 确保rate参数格式正确
+                if rate_param == "0%":
+                    rate_param = ""
+                elif rate_param and not rate_param.startswith(('+', '-')):
+                    try:
+                        num_value = int(rate_param.rstrip('%'))
+                        if num_value > 0:
+                            rate_param = f"+{rate_param}"
+                        else:
+                            rate_param = f"{rate_param}"
+                    except ValueError:
                         rate_param = ""
-                    elif rate_param and not rate_param.startswith(('+', '-')):
-                        try:
-                            num_value = int(rate_param.rstrip('%'))
-                            if num_value > 0:
-                                rate_param = f"+{rate_param}"
-                            else:
-                                rate_param = f"{rate_param}"
-                        except ValueError:
-                            rate_param = ""
 
-                    # 确保pitch参数格式正确 - edge-tts需要Hz格式
-                    if pitch_param == "0Hz" or pitch_param == "0%":
-                        pitch_param = ""
-                    elif pitch_param:
-                        try:
-                            # 移除所有后缀，获取数值
-                            clean_pitch = pitch_param.replace('%', '').replace('Hz', '')
-                            num_value = int(clean_pitch)
+                # 确保pitch参数格式正确 - edge-tts需要Hz格式
+                if pitch_param == "0Hz" or pitch_param == "0%":
+                    pitch_param = ""
+                elif pitch_param:
+                    try:
+                        # 移除所有后缀，获取数值
+                        clean_pitch = pitch_param.replace('%', '').replace('Hz', '')
+                        num_value = int(clean_pitch)
 
-                            # edge-tts要求pitch必须是Hz格式，不能是百分比
-                            # 将百分比转换为Hz（这是一个近似转换）
-                            if '%' in pitch_param:
-                                # 如果原来是百分比，转换为Hz（1% ≈ 2Hz）
-                                num_value = num_value * 2
+                        # edge-tts要求pitch必须是Hz格式，不能是百分比
+                        # 将百分比转换为Hz（这是一个近似转换）
+                        if '%' in pitch_param:
+                            # 如果原来是百分比，转换为Hz（1% ≈ 2Hz）
+                            num_value = num_value * 2
 
-                            if num_value > 0:
-                                pitch_param = f"+{num_value}Hz"
-                            elif num_value < 0:
-                                pitch_param = f"{num_value}Hz"
-                            else:
-                                pitch_param = ""
-                        except ValueError:
+                        if num_value > 0:
+                            pitch_param = f"+{num_value}Hz"
+                        elif num_value < 0:
+                            pitch_param = f"{num_value}Hz"
+                        else:
                             pitch_param = ""
+                    except ValueError:
+                        pitch_param = ""
 
-                    logger.info(f"🔄 使用edge-tts回退参数: voice={config_obj.voice.name}, rate={rate_param}, pitch={pitch_param}")
+                logger.info(f"🔄 使用edge-tts回退参数: voice={config_obj.voice.name}, rate={rate_param}, pitch={pitch_param}")
 
-                    communicate = edge_tts.Communicate(
-                        text=text,  # 使用原始文本，不是SSML
-                        voice=config_obj.voice.name,
-                        rate=rate_param,
-                        pitch=pitch_param
-                    )
+                communicate = edge_tts.Communicate(
+                    text=text,  # 使用原始文本，不是SSML
+                    voice=config_obj.voice.name,
+                    rate=rate_param,
+                    pitch=pitch_param
+                )
             else:
                 # 传统方式，保持向后兼容
                 # Fix rate parameter: edge-tts requires rate to start with + or -
@@ -392,7 +385,11 @@ class TTSService:
                     pitch=pitch
                 )
 
-            await communicate.save(str(output_path))
+            # Add timeout protection to prevent hanging
+            try:
+                await asyncio.wait_for(communicate.save(str(output_path)), timeout=120.0)
+            except asyncio.TimeoutError:
+                raise RuntimeError(f"TTS generation timed out after 120 seconds")
         except Exception as e:
             raise RuntimeError(f"Failed to generate audio for chunk: {str(e)}")
 
@@ -559,51 +556,69 @@ class TTSService:
                                        original_text: str, max_concurrency: int,
                                        custom_ssml: bool = False):
         """Process audio chunks in batches to manage memory usage"""
+        from ..core.database import SessionLocal
+        from ..models.tts import TTSRequest
+
         total_chunks = len(chunks)
         processed = 0
+        db = SessionLocal()
 
-        # Process in batches to avoid memory overload
-        for batch_start in range(0, total_chunks, self.batch_size):
-            batch_end = min(batch_start + self.batch_size, total_chunks)
-            batch_chunks = chunks[batch_start:batch_end]
+        try:
+            # Process in batches to avoid memory overload
+            for batch_start in range(0, total_chunks, self.batch_size):
+                batch_end = min(batch_start + self.batch_size, total_chunks)
+                batch_chunks = chunks[batch_start:batch_end]
 
-            print(f"Processing batch {batch_start//self.batch_size + 1}/{(total_chunks-1)//self.batch_size + 1} "
-                  f"(chunks {batch_start}-{batch_end-1})")
+                print(f"Processing batch {batch_start//self.batch_size + 1}/{(total_chunks-1)//self.batch_size + 1} "
+                      f"(chunks {batch_start}-{batch_end-1})")
 
-            # Check memory before processing batch
-            current_memory = self.check_memory_usage()
-            if current_memory > self.max_memory_usage_percent:
-                print(f"High memory usage ({current_memory:.1f}%), forcing garbage collection")
-                self.force_garbage_collection()
+                # Check memory before processing batch
+                current_memory = self.check_memory_usage()
+                if current_memory > self.max_memory_usage_percent:
+                    print(f"High memory usage ({current_memory:.1f}%), forcing garbage collection")
+                    self.force_garbage_collection()
 
-            # Create semaphore for this batch
-            sem = asyncio.Semaphore(max_concurrency)
+                # Create semaphore for this batch
+                sem = asyncio.Semaphore(max_concurrency)
 
-            async def process_chunk(index: int, chunk_text: str):
-                chunk_index = batch_start + index
-                output_file = parts_dir / f"{chunk_index:05d}.mp3"
+                async def process_chunk(index: int, chunk_text: str):
+                    chunk_index = batch_start + index
+                    output_file = parts_dir / f"{chunk_index:05d}.mp3"
 
-                for attempt in range(1, settings.max_retries + 1):
-                    try:
-                        async with sem:
-                            # 对每个分段分别生成SSML，避免重复处理整个文本
-                            await self.generate_audio_chunk(chunk_text, voice, rate, pitch, output_file, use_ssml, ssml_config, custom_ssml)
-                            return
-                    except Exception as e:
-                        if attempt == settings.max_retries:
-                            raise RuntimeError(f"Failed to process chunk {chunk_index} after {settings.max_retries} attempts: {str(e)}")
-                        await asyncio.sleep(1)
+                    for attempt in range(1, settings.max_retries + 1):
+                        try:
+                            async with sem:
+                                # 对每个分段分别生成SSML，避免重复处理整个文本
+                                await self.generate_audio_chunk(chunk_text, voice, rate, pitch, output_file, use_ssml, ssml_config, custom_ssml)
+                                return
+                        except Exception as e:
+                            if attempt == settings.max_retries:
+                                raise RuntimeError(f"Failed to process chunk {chunk_index} after {settings.max_retries} attempts: {str(e)}")
+                            await asyncio.sleep(1)
 
-            # Process this batch concurrently
-            batch_tasks = [process_chunk(i, chunk) for i, chunk in enumerate(batch_chunks)]
-            await asyncio.gather(*batch_tasks)
+                # Process this batch concurrently
+                batch_tasks = [process_chunk(i, chunk) for i, chunk in enumerate(batch_chunks)]
+                await asyncio.gather(*batch_tasks)
 
-            processed += len(batch_chunks)
-            print(f"Batch completed. Processed {processed}/{total_chunks} chunks. Memory: {self.check_memory_usage():.1f}%")
+                processed += len(batch_chunks)
+                print(f"Batch completed. Processed {processed}/{total_chunks} chunks. Memory: {self.check_memory_usage():.1f}%")
 
-            # Force garbage collection after each batch for long texts
-            if total_chunks > 20:  # Only for long texts
-                self.force_garbage_collection()
+                # Update database with progress
+                try:
+                    tts_request = db.query(TTSRequest).filter(TTSRequest.task_id == task_id).first()
+                    if tts_request:
+                        tts_request.processed_chunks = processed
+                        db.commit()
+                        print(f"✅ Updated progress in database: {processed}/{total_chunks}")
+                except Exception as e:
+                    print(f"⚠️ Failed to update progress: {e}")
+                    db.rollback()
+
+                # Force garbage collection after each batch for long texts
+                if total_chunks > 20:  # Only for long texts
+                    self.force_garbage_collection()
+        finally:
+            db.close()
 
     async def concatenate_audio(self, parts_dir: Path, output_path: Path) -> None:
         """Concatenate multiple MP3 files into one using ffmpeg or fallback method"""

@@ -3,12 +3,14 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
 from pydantic import BaseModel
+import os
+from pathlib import Path
 
 from ..core.database import get_db
+from ..core.config import settings
 from ..models.saved_audio import SavedAudio
 from ..models.tts import TTSRequest
 import shutil
-import os
 
 router = APIRouter(prefix="/saved-audios", tags=["saved-audios"])
 
@@ -43,18 +45,18 @@ async def save_audio(
 
     # 提取音频文件路径
     audio_filename = task.audio_url.split("/")[-1]
-    source_path = f"/app/storage/audio/{audio_filename}"
+    source_path = Path(settings.storage_path) / "audio" / audio_filename
 
     # 创建保存目录
-    saved_dir = "/app/storage/saved"
-    os.makedirs(saved_dir, exist_ok=True)
+    saved_dir = Path(settings.storage_path) / "saved"
+    saved_dir.mkdir(parents=True, exist_ok=True)
 
     # 复制音频文件到保存目录
     saved_filename = f"saved_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{audio_filename}"
-    dest_path = os.path.join(saved_dir, saved_filename)
+    dest_path = saved_dir / saved_filename
 
     try:
-        if os.path.exists(source_path):
+        if source_path.exists():
             shutil.copy2(source_path, dest_path)
         else:
             raise HTTPException(status_code=404, detail="源音频文件不存在")
@@ -114,10 +116,10 @@ async def delete_saved_audio(saved_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="保存的音频不存在")
 
     # 删除文件
-    file_path = f"/app{saved_audio.audio_path}"
-    if os.path.exists(file_path):
+    file_path = Path(settings.storage_path) / saved_audio.audio_path.lstrip("/storage/")
+    if file_path.exists():
         try:
-            os.remove(file_path)
+            file_path.unlink()
         except Exception as e:
             print(f"删除文件失败: {e}")
 

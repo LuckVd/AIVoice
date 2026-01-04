@@ -1,0 +1,35 @@
+# Docker Compose for local development
+# Only runs database and middleware services
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=tts_db
+      - POSTGRES_USER=tts_user
+      - POSTGRES_PASSWORD=tts_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "15432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tts_user -d tts_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for Task Queue
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "16379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
